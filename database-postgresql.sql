@@ -28,7 +28,7 @@ CREATE TABLE service_types (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Technicians table (Técnicos)
+-- Technicians table (Técnicos - Simplificado)
 CREATE TABLE technicians (
     technician_id SERIAL PRIMARY KEY,
     technician_name VARCHAR(100) NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE technicians (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Services table (Unificada com registro de máquina)
+-- Services table (Unificada com registro de máquina - Sem prioridade)
 CREATE TABLE services (
     service_id BIGSERIAL PRIMARY KEY,
     machine_code VARCHAR(100) NOT NULL,
@@ -56,7 +56,6 @@ CREATE TABLE services (
     description TEXT NOT NULL,
     cost DECIMAL(10,2) NOT NULL,
     status VARCHAR(20) DEFAULT 'completed' CHECK (status IN ('completed', 'pending', 'cancelled', 'in_progress')),
-    priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
     estimated_duration_hours INTEGER,
     actual_duration_hours INTEGER,
     parts_used TEXT,
@@ -95,29 +94,55 @@ CREATE INDEX idx_service_type ON services(service_type_id);
 CREATE INDEX idx_service_date ON services(service_date);
 CREATE INDEX idx_record_date ON services(record_date);
 CREATE INDEX idx_status ON services(status);
-CREATE INDEX idx_priority ON services(priority);
 CREATE INDEX idx_machine_type ON services(machine_type);
 
--- Insert sample data
-INSERT INTO stores (store_id, store_name, store_code, address, phone, email, manager, region) VALUES
-('ST001', 'Loja Centro', 'CENTRO', 'Rua das Flores, 123 - Centro', '(11) 9999-9999', 'centro@gpmaquinas.com', 'João Silva', 'São Paulo'),
-('ST002', 'Loja Norte', 'NORTE', 'Av. Paulista, 456 - Norte', '(11) 8888-8888', 'norte@gpmaquinas.com', 'Maria Santos', 'São Paulo'),
-('ST003', 'Loja Sul', 'SUL', 'Rua Augusta, 789 - Sul', '(11) 7777-7777', 'sul@gpmaquinas.com', 'Pedro Costa', 'São Paulo');
+-- Insert initial data
 
+-- Insert stores (Lojas)
+INSERT INTO stores (store_id, store_name, store_code, region) VALUES
+('GPAnhaiaMello', 'GP Anhaia Mello', 'GPAnhaiaMello', 'São Paulo'),
+('GPAricanduva', 'GP Aricanduva', 'GPAricanduva', 'São Paulo'),
+('GPCampoLimpo', 'GP Campo Limpo', 'GPCampoLimpo', 'São Paulo'),
+('GPCarrão', 'GP Carrão', 'GPCarrão', 'São Paulo'),
+('GPCidadeDutra', 'GP Cidade Dutra', 'GPCidadeDutra', 'São Paulo'),
+('GPCotia', 'GP Cotia', 'GPCotia', 'São Paulo'),
+('GPCruzeirodoSul', 'GP Cruzeiro do Sul', 'GPCruzeirodoSul', 'São Paulo'),
+('GPDemarchi', 'GP Demarchi', 'GPDemarchi', 'São Paulo'),
+('GPEdgarFacó', 'GP Edgar Facó', 'GPEdgarFacó', 'São Paulo'),
+('GPGuarulhos', 'GP Guarulhos', 'GPGuarulhos', 'São Paulo'),
+('GPInterlagos', 'GP Interlagos', 'GPInterlagos', 'São Paulo'),
+('GPJabaquara', 'GP Jabaquara', 'GPJabaquara', 'São Paulo'),
+('GPJundiai', 'GP Jundiaí', 'GPJundiai', 'São Paulo'),
+('GPLapa', 'GP Lapa', 'GPLapa', 'São Paulo'),
+('GPLimão', 'GP Limão', 'GPLimão', 'São Paulo'),
+('GPMboiMirim', 'GP M''Boi Mirim', 'GPMboiMirim', 'São Paulo'),
+('GPMogi', 'GP Mogi', 'GPMogi', 'São Paulo'),
+('GPMorumbi', 'GP Morumbi', 'GPMorumbi', 'São Paulo'),
+('GPOsasco', 'GP Osasco', 'GPOsasco', 'São Paulo'),
+('GPRaguebChohfi', 'GP Ragueb Chohfi', 'GPRaguebChohfi', 'São Paulo'),
+('GPRibeirãoPreto', 'GP Ribeirão Preto', 'GPRibeirãoPreto', 'São Paulo'),
+('GPRicardoJafet', 'GP Ricardo Jafet', 'GPRicardoJafet', 'São Paulo'),
+('GPSantoAndré', 'GP Santo André', 'GPSantoAndré', 'São Paulo'),
+('GPTaboão', 'GP Taboão', 'GPTaboão', 'São Paulo');
+
+-- Insert service types
 INSERT INTO service_types (service_type_id, service_name, description, estimated_cost, estimated_duration_hours, category) VALUES
-('PREV_MAINT', 'Manutenção Preventiva', 'Manutenção regular para prevenir falhas', 150.00, 2, 'Manutenção'),
-('CORR_MAINT', 'Manutenção Corretiva', 'Reparo de equipamentos com falha', 300.00, 4, 'Reparo'),
-('CALIBRATION', 'Calibração', 'Ajuste de precisão do equipamento', 200.00, 3, 'Calibração'),
-('INSPECTION', 'Inspeção', 'Verificação de segurança e funcionamento', 100.00, 1, 'Inspeção'),
-('INSTALLATION', 'Instalação', 'Montagem e configuração de equipamentos', 500.00, 6, 'Instalação');
+('belt-replacement', 'Substituição de Correia', 'Substituição de correias em máquinas', 100.00, 2, 'Manutenção'),
+('engine-replacement', 'Substituição de Motor', 'Substituição de motores', 500.00, 4, 'Reparo'),
+('flat-replacement', 'Substituição de Pneu', 'Substituição de pneus', 80.00, 1, 'Manutenção'),
+('tube-air-replacement', 'Substituição de Tubo/Ar', 'Substituição de tubos de ar', 120.00, 2, 'Manutenção'),
+('repair', 'Reparo', 'Reparo geral de máquinas', 200.00, 3, 'Reparo'),
+('preventive-maintenance', 'Manutenção Preventiva', 'Manutenção preventiva mensal', 150.00, 2, 'Preventiva'),
+('calibration', 'Calibração', 'Calibração de máquinas', 180.00, 2, 'Calibração'),
+('inspection', 'Inspeção', 'Inspeção de segurança', 90.00, 1, 'Inspeção'),
+('other', 'Outros', 'Outros tipos de serviço', 100.00, 2, 'Outros');
 
-INSERT INTO technicians (technician_name, phone, email, specialization, certification, hourly_rate) VALUES
-('Carlos Oliveira', '(11) 9999-1111', 'carlos@gpmaquinas.com', 'Máquinas Industriais', 'Técnico Industrial', 50.00),
-('Ana Rodrigues', '(11) 9999-2222', 'ana@gpmaquinas.com', 'Equipamentos Eletrônicos', 'Técnico Eletrônico', 45.00),
-('Roberto Lima', '(11) 9999-3333', 'roberto@gpmaquinas.com', 'Máquinas Pesadas', 'Técnico Mecânico', 55.00),
-('Fernanda Costa', '(11) 9999-4444', 'fernanda@gpmaquinas.com', 'Sistemas Automatizados', 'Técnico Automação', 60.00);
+-- Insert technicians (Simplificado para Martins e Outros)
+INSERT INTO technicians (technician_id, technician_name, specialization, hourly_rate, is_active) VALUES
+(1, 'Martins', 'Mecânica Geral', 50.00, true),
+(2, 'Outros', 'Serviços Gerais', 45.00, true);
 
--- Create updated_at trigger function
+-- Create trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -126,7 +151,6 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create triggers for updated_at
 CREATE TRIGGER update_stores_updated_at BEFORE UPDATE ON stores FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_technicians_updated_at BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_services_updated_at BEFORE UPDATE ON services FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
