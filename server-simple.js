@@ -26,8 +26,8 @@ app.use(express.urlencoded({ extended: true }));
 // Servir arquivos estáticos da raiz
 app.use(express.static(__dirname));
 
-// Rota principal para index.html
-app.get('/', (req, res) => {
+  // Rota principal para index.html
+  app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
