@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GP Máquinas - Dashboard Administrativo</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1><i class="fas fa-cogs"></i> GP Máquinas e Serviços</h1>
+                <p>Dashboard Administrativo</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="loginUsername"><i class="fas fa-user"></i> Usuário:</label>
+                    <input type="text" id="loginUsername" name="loginUsername" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword"><i class="fas fa-lock"></i> Senha:</label>
+                    <input type="password" id="loginPassword" name="loginPassword" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Entrar
+                </button>
+            </form>
+            
+            <div class="login-info">
+                <h3><i class="fas fa-info-circle"></i> Informações de Login:</h3>
+                <div class="login-types">
+                    <div class="login-type">
+                        <strong>Administrador:</strong><br>
+                        Usuário: admin<br>
+                        Senha: admin
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard (Hidden until login) -->
+    <div id="mainDashboard" class="main-dashboard" style="display: none;">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1><i class="fas fa-cogs"></i> GP Máquinas - Dashboard</h1>
+                    <p>Sistema de Gerenciamento Administrativo</p>
+                </div>
+                <div class="header-right">
+                    <div class="user-info">
+                        <span id="currentUser">Usuário: </span>
+                        <button id="logoutBtn" class="btn-logout">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="dashboard-nav">
+            <div class="nav-container">
+                <button class="nav-btn active" data-section="overview">
+                    <i class="fas fa-tachometer-alt"></i> Visão Geral
+                </button>
+                <button class="nav-btn" data-section="stores">
+                    <i class="fas fa-store"></i> Lojas
+                </button>
+                <button class="nav-btn" data-section="machines">
+                    <i class="fas fa-cogs"></i> Máquinas
+                </button>
+                <button class="nav-btn" data-section="services">
+                    <i class="fas fa-tools"></i> Serviços
+                </button>
+                <button class="nav-btn" data-section="maintenance">
+                    <i class="fas fa-calendar-check"></i> Manutenção
+                </button>
+                <button class="nav-btn" data-section="financial">
+                    <i class="fas fa-chart-line"></i> Financeiro
+                </button>
+                <button class="nav-btn" data-section="reports">
+                    <i class="fas fa-file-alt"></i> Relatórios
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <!-- Overview Section -->
+            <section id="overview-section" class="content-section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Visão Geral do Sistema</h2>
+                    <p>Estatísticas gerais e indicadores de performance</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalStores">0</h3>
+                            <p>Total de Lojas</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalMachines">0</h3>
+                            <p>Total de Máquinas</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="servicesThisMonth">0</h3>
+                            <p>Serviços este Mês</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="costThisMonth">R$ 0,00</h3>
+                            <p>Custo este Mês</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="urgentMaintenance">0</h3>
+                            <p>Manutenção Urgente</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-wrench"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="machinesInMaintenance">0</h3>
+                            <p>Em Manutenção</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3><i class="fas fa-chart-pie"></i> Distribuição por Loja</h3>
+                        <canvas id="storesChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3><i class="fas fa-chart-bar"></i> Serviços por Mês</h3>
+                        <canvas id="servicesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="recent-activities">
+                    <h3><i class="fas fa-clock"></i> Atividades Recentes</h3>
+                    <div id="activitiesList" class="activities-list">
+                        <p class="loading">Carregando atividades...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stores Section -->
+            <section id="stores-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-store"></i> Gerenciamento de Lojas</h2>
+                    <p>Visualize e gerencie todas as lojas da rede</p>
+                </div>
+                
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="storeRegionFilter">Região:</label>
+                        <select id="storeRegionFilter">
+                            <option value="">Todas as Regiões</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="storeStatusFilter">Status:</label>
+                        <select id="storeStatusFilter">
+                            <option value="">Todos os Status</option>
+                            <option value="active">Ativa</option>
+                            <option value="inactive">Inativa</option>
+                        </select>
+                    </div>
+                    
+                    <button id="refreshStores" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                </div>
+                
+                <div id="storesList" class="stores-grid">
+                    <p class="loading">Carregando lojas...</p>
+                </div>
+            </section>
+
+            <!-- Machines Section -->
+            <section id="machines-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-cogs"></i> Gerenciamento de Máquinas</h2>
+                    <p>Visualize e gerencie todas as máquinas do sistema</p>
+                </div>
+                
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="machineStoreFilter">Loja:</label>
+                        <select id="machineStoreFilter">
+                            <option value="">Todas as Lojas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="machineTypeFilter">Tipo:</label>
+                        <select id="machineTypeFilter">
+                            <option value="">Todos os Tipos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="machineStatusFilter">Status:</label>
+                        <select id="machineStatusFilter">
+                            <option value="">Todos os Status</option>
+                            <option value="active">Ativa</option>
+                            <option value="maintenance">Em Manutenção</option>
+                            <option value="broken">Quebrada</option>
+                            <option value="inactive">Inativa</option>
+                        </select>
+                    </div>
+                    
+                    <button id="refreshMachines" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                </div>
+                
+                <div id="machinesList" class="machines-grid">
+                    <p class="loading">Carregando máquinas...</p>
+                </div>
+            </section>
+
+            <!-- Services Section -->
+            <section id="services-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-tools"></i> Histórico de Serviços</h2>
+                    <p>Visualize todos os serviços realizados</p>
+                </div>
+                
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="serviceStoreFilter">Loja:</label>
+                        <select id="serviceStoreFilter">
+                            <option value="">Todas as Lojas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="serviceDateStart">Data Início:</label>
+                        <input type="date" id="serviceDateStart">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="serviceDateEnd">Data Fim:</label>
+                        <input type="date" id="serviceDateEnd">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="serviceTechnicianFilter">Técnico:</label>
+                        <select id="serviceTechnicianFilter">
+                            <option value="">Todos os Técnicos</option>
+                        </select>
+                    </div>
+                    
+                    <button id="refreshServices" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                </div>
+                
+                <div id="servicesList" class="services-list">
+                    <p class="loading">Carregando serviços...</p>
+                </div>
+            </section>
+
+            <!-- Maintenance Section -->
+            <section id="maintenance-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-check"></i> Agendamento de Manutenção</h2>
+                    <p>Gerencie o cronograma de manutenções</p>
+                </div>
+                
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="maintenanceStoreFilter">Loja:</label>
+                        <select id="maintenanceStoreFilter">
+                            <option value="">Todas as Lojas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="maintenanceDaysAhead">Dias à Frente:</label>
+                        <select id="maintenanceDaysAhead">
+                            <option value="7">7 dias</option>
+                            <option value="30" selected>30 dias</option>
+                            <option value="90">90 dias</option>
+                        </select>
+                    </div>
+                    
+                    <button id="refreshMaintenance" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                </div>
+                
+                <div class="maintenance-priority">
+                    <div class="priority-urgent">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Urgente (≤ 7 dias)</h3>
+                        <div id="urgentMaintenanceList" class="maintenance-list">
+                            <p class="loading">Carregando...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="priority-upcoming">
+                        <h3><i class="fas fa-clock"></i> Próximo (≤ 30 dias)</h3>
+                        <div id="upcomingMaintenanceList" class="maintenance-list">
+                            <p class="loading">Carregando...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="priority-scheduled">
+                        <h3><i class="fas fa-calendar"></i> Programado (> 30 dias)</h3>
+                        <div id="scheduledMaintenanceList" class="maintenance-list">
+                            <p class="loading">Carregando...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Financial Section -->
+            <section id="financial-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Análise Financeira</h2>
+                    <p>Relatórios e análises financeiras</p>
+                </div>
+                
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="financialStoreFilter">Loja:</label>
+                        <select id="financialStoreFilter">
+                            <option value="">Todas as Lojas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="financialDateStart">Data Início:</label>
+                        <input type="date" id="financialDateStart">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="financialDateEnd">Data Fim:</label>
+                        <input type="date" id="financialDateEnd">
+                    </div>
+                    
+                    <button id="refreshFinancial" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                </div>
+                
+                <div class="financial-summary">
+                    <div class="financial-card">
+                        <h3><i class="fas fa-dollar-sign"></i> Resumo Financeiro</h3>
+                        <div id="financialSummary" class="financial-data">
+                            <p class="loading">Carregando dados financeiros...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="financial-chart">
+                        <h3><i class="fas fa-chart-bar"></i> Custos por Loja</h3>
+                        <canvas id="financialChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-file-alt"></i> Geração de Relatórios</h2>
+                    <p>Crie e visualize relatórios personalizados</p>
+                </div>
+                
+                <div class="reports-container">
+                    <div class="report-generator">
+                        <h3><i class="fas fa-plus"></i> Gerar Novo Relatório</h3>
+                        <form id="reportForm" class="report-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="reportType">Tipo de Relatório:</label>
+                                    <select id="reportType" name="reportType" required>
+                                        <option value="">Selecionar Tipo</option>
+                                        <option value="store_summary">Resumo por Loja</option>
+                                        <option value="financial_summary">Resumo Financeiro</option>
+                                        <option value="maintenance_schedule">Cronograma de Manutenção</option>
+                                        <option value="service_summary">Resumo de Serviços</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="reportStore">Loja (Opcional):</label>
+                                    <select id="reportStore" name="reportStore">
+                                        <option value="">Todas as Lojas</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="reportStartDate">Data Início:</label>
+                                    <input type="date" id="reportStartDate" name="reportStartDate" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="reportEndDate">Data Fim:</label>
+                                    <input type="date" id="reportEndDate" name="reportEndDate" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-file-alt"></i> Gerar Relatório
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="reports-history">
+                        <h3><i class="fas fa-history"></i> Histórico de Relatórios</h3>
+                        <div id="reportsHistory" class="reports-list">
+                            <p class="loading">Carregando histórico...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Carregando...</p>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>

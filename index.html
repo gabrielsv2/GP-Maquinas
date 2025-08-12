@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GP Máquinas e Serviços</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>GP Máquinas e Serviços</h1>
+                <p>Sistema de Gerenciamento de Serviços</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="loginUsername">Usuário:</label>
+                    <input type="text" id="loginUsername" name="loginUsername" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Senha:</label>
+                    <input type="password" id="loginPassword" name="loginPassword" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+            
+            <div class="login-info">
+                <h3>Informações de Login:</h3>
+                <div class="login-types">
+                    <div class="login-type">
+                        <strong>Administrador:</strong><br>
+                        Usuário: admin<br>
+                        Senha: admin
+                    </div>
+                    <div class="login-type">
+                        <strong>Loja Específica:</strong><br>
+                        Usuário: nome da loja (ex: GPInterlagos)<br>
+                        Senha: 123456
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application (Hidden until login) -->
+    <div id="mainApp" class="main-app" style="display: none;">
+        <div class="container">
+            <header>
+                <div class="banner">
+                    <img src="https://i.imgur.com/B4rR710.png" alt="GP Máquinas e Serviços Banner" class="banner-image">
+                </div>
+                <div class="header-content">
+                    <div class="header-info">
+                        <h1>GP Máquinas e Serviços</h1>
+                        <p>Sistema de Registro de Serviços</p>
+                    </div>
+                    <div class="user-info">
+                        <span id="currentUser">Usuário: </span>
+                        <button id="logoutBtn" class="btn-logout">Sair</button>
+                    </div>
+                </div>
+            </header>
+
+            <nav class="main-nav">
+                <div class="nav-container">
+                    <button class="nav-btn active" data-section="service">Registro de Serviço</button>
+                    <button class="nav-btn admin-only" data-section="reports">Relatórios</button>
+                    <button class="nav-btn" data-section="records">Registros</button>
+                </div>
+            </nav>
+
+            <main>
+                <!-- Service Registration Section (Unificada) -->
+                <section id="service-section" class="content-section active">
+                    <div class="section-header">
+                        <h2>Registro de Serviço</h2>
+                        <p>Registre serviços realizados nas máquinas das lojas</p>
+                    </div>
+                    <form id="serviceForm" class="form-container">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="machineCode">Código da Máquina:</label>
+                                <input type="text" id="machineCode" name="machineCode" placeholder="Ex: ELEV-001, COMP-002" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="machineType">Tipo de Máquina:</label>
+                                <select id="machineType" name="machineType" required>
+                                    <option value="">Selecionar Tipo</option>
+                                    <option value="Elevador 1">Elevador 1</option>
+                                    <option value="Elevador 2">Elevador 2</option>
+                                    <option value="Elevador 3">Elevador 3</option>
+                                    <option value="Elevador 4">Elevador 4</option>
+                                    <option value="Elevador 5">Elevador 5</option>
+                                    <option value="Montador 1">Montador 1</option>
+                                    <option value="Montador 2">Montador 2</option>
+                                    <option value="Compressor">Compressor</option>
+                                    <option value="Alinhador">Alinhador</option>
+                                    <option value="Tubo de Ar">Tubo de Ar</option>
+                                    <option value="Torno">Torno</option>
+                                    <option value="Fresadora">Fresadora</option>
+                                    <option value="Furadeira">Furadeira</option>
+                                    <option value="Retífica">Retífica</option>
+                                    <option value="Serra">Serra</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="storeLocation">Loja:</label>
+                                <select id="storeLocation" name="storeLocation" required>
+                                    <option value="">Selecionar Loja</option>
+                                    <option value="GPAnhaiaMello">GP Anhaia Mello</option>
+                                    <option value="GPAricanduva">GP Aricanduva</option>
+                                    <option value="GPCampoLimpo">GP Campo Limpo</option>
+                                    <option value="GPCarrão">GP Carrão</option>
+                                    <option value="GPCidadeDutra">GP Cidade Dutra</option>
+                                    <option value="GPCotia">GP Cotia</option>
+                                    <option value="GPCruzeirodoSul">GP Cruzeiro do Sul</option>
+                                    <option value="GPDemarchi">GP Demarchi</option>
+                                    <option value="GPEdgarFacó">GP Edgar Facó</option>
+                                    <option value="GPGuarulhos">GP Guarulhos</option>
+                                    <option value="GPInterlagos">GP Interlagos</option>
+                                    <option value="GPJabaquara">GP Jabaquara</option>
+                                    <option value="GPJundiai">GP Jundiaí</option>
+                                    <option value="GPLapa">GP Lapa</option>
+                                    <option value="GPLimão">GP Limão</option>
+                                    <option value="GPMboiMirim">GP M'Boi Mirim</option>
+                                    <option value="GPMogi">GP Mogi</option>
+                                    <option value="GPMorumbi">GP Morumbi</option>
+                                    <option value="GPOsasco">GP Osasco</option>
+                                    <option value="GPRaguebChohfi">GP Ragueb Chohfi</option>
+                                    <option value="GPRibeirãoPreto">GP Ribeirão Preto</option>
+                                    <option value="GPRicardoJafet">GP Ricardo Jafet</option>
+                                    <option value="GPSantoAndré">GP Santo André</option>
+                                    <option value="GPTaboão">GP Taboão</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="location">Localização Específica:</label>
+                                <input type="text" id="location" name="location" placeholder="Ex: Setor A, Área 3" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="serviceType">Tipo de Serviço:</label>
+                                <select id="serviceType" name="serviceType" required>
+                                    <option value="">Selecionar Tipo de Serviço</option>
+                                    <option value="belt-replacement">Substituição de Correia</option>
+                                    <option value="engine-replacement">Substituição de Motor</option>
+                                    <option value="flat-replacement">Substituição de Pneu</option>
+                                    <option value="tube-air-replacement">Substituição de Tubo/Ar</option>
+                                    <option value="repair">Reparo</option>
+                                    <option value="preventive-maintenance">Manutenção Preventiva</option>
+                                    <option value="calibration">Calibração</option>
+                                    <option value="inspection">Inspeção</option>
+                                    <option value="other">Outros</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="serviceDate">Data do Serviço:</label>
+                                <input type="date" id="serviceDate" name="serviceDate" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="technician">Técnico:</label>
+                                <select id="technician" name="technician" required>
+                                    <option value="">Selecionar Técnico</option>
+                                    <option value="1">João Silva - Mecânica Geral</option>
+                                    <option value="2">Maria Santos - Eletrônica</option>
+                                    <option value="3">Pedro Costa - Manutenção Preventiva</option>
+                                    <option value="4">Ana Oliveira - Calibração</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cost">Custo do Serviço (R$):</label>
+                                <input type="number" id="cost" name="cost" step="0.01" min="0" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Descrição do Serviço:</label>
+                            <textarea id="description" name="description" rows="4" required></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="priority">Prioridade:</label>
+                                <select id="priority" name="priority">
+                                    <option value="low">Baixa</option>
+                                    <option value="medium" selected>Média</option>
+                                    <option value="high">Alta</option>
+                                    <option value="urgent">Urgente</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="status">Status:</label>
+                                <select id="status" name="status">
+                                    <option value="completed" selected>Concluído</option>
+                                    <option value="pending">Pendente</option>
+                                    <option value="in_progress">Em Andamento</option>
+                                    <option value="cancelled">Cancelado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Observações Adicionais:</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Informações adicionais, peças utilizadas, etc."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Registrar Serviço</button>
+                    </form>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reports-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Relatórios por Loja</h2>
+                        <p>Visualize relatórios específicos de cada loja</p>
+                    </div>
+                    <div class="reports-container">
+                        <div class="store-selector">
+                            <label for="storeReportSelect">Selecionar Loja para Relatório:</label>
+                            <select id="storeReportSelect" name="storeReportSelect">
+                                <option value="">Selecionar Loja</option>
+                                <option value="GPAnhaiaMello">GP Anhaia Mello</option>
+                                <option value="GPAricanduva">GP Aricanduva</option>
+                                <option value="GPCampoLimpo">GP Campo Limpo</option>
+                                <option value="GPCarrão">GP Carrão</option>
+                                <option value="GPCidadeDutra">GP Cidade Dutra</option>
+                                <option value="GPCotia">GP Cotia</option>
+                                <option value="GPCruzeirodoSul">GP Cruzeiro do Sul</option>
+                                <option value="GPDemarchi">GP Demarchi</option>
+                                <option value="GPEdgarFacó">GP Edgar Facó</option>
+                                <option value="GPGuarulhos">GP Guarulhos</option>
+                                <option value="GPInterlagos">GP Interlagos</option>
+                                <option value="GPJabaquara">GP Jabaquara</option>
+                                <option value="GPJundiai">GP Jundiaí</option>
+                                <option value="GPLapa">GP Lapa</option>
+                                <option value="GPLimão">GP Limão</option>
+                                <option value="GPMboiMirim">GP M'Boi Mirim</option>
+                                <option value="GPMogi">GP Mogi</option>
+                                <option value="GPMorumbi">GP Morumbi</option>
+                                <option value="GPOsasco">GP Osasco</option>
+                                <option value="GPRaguebChohfi">GP Ragueb Chohfi</option>
+                                <option value="GPRibeirãoPreto">GP Ribeirão Preto</option>
+                                <option value="GPRicardoJafet">GP Ricardo Jafet</option>
+                                <option value="GPSantoAndré">GP Santo André</option>
+                                <option value="GPTaboão">GP Taboão</option>
+                            </select>
+                        </div>
+                        
+                        <div id="storeReport" class="store-report">
+                            <p class="no-records">Selecione uma loja para visualizar o relatório.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Records Section -->
+                <section id="records-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Registros do Sistema</h2>
+                        <p>Visualize todos os serviços registrados</p>
+                    </div>
+                    <div class="records-container">
+                        <div class="records-section">
+                            <h3>Serviços Registrados</h3>
+                            <div id="servicesList" class="records-list">
+                                <p class="no-records">Nenhum serviço registrado ainda.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
