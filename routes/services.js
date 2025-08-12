@@ -161,7 +161,7 @@ router.post('/', [
             serviceDate,
             description,
             cost,
-            priority = 'medium',
+
             status = 'completed',
             notes = '',
             estimatedDurationHours,
@@ -211,7 +211,7 @@ router.post('/', [
         const insertQuery = `
             INSERT INTO services (
                 machine_code, machine_type, store_id, location, service_type_id,
-                technician_id, service_date, description, cost, priority, status,
+                technician_id, service_date, description, cost, status,
                 notes, estimated_duration_hours, actual_duration_hours, parts_used,
                 warranty_until, record_date
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
@@ -220,7 +220,7 @@ router.post('/', [
 
         const insertParams = [
             machineCode, machineType, storeId, location, serviceTypeId,
-            technicianId, serviceDate, description, cost, priority, status,
+            technicianId, serviceDate, description, cost, status,
             notes, estimatedDurationHours, actualDurationHours, partsUsed,
             warrantyUntil, new Date().toISOString().split('T')[0]
         ];
@@ -283,7 +283,7 @@ router.put('/:id', [
                 location = $3,
                 description = $4,
                 cost = $5,
-                priority = $6,
+
                 status = $7,
                 notes = $8,
                 estimated_duration_hours = $9,
@@ -301,7 +301,7 @@ router.put('/:id', [
             updateData.location,
             updateData.description,
             updateData.cost,
-            updateData.priority || 'medium',
+
             updateData.status || 'completed',
             updateData.notes || '',
             updateData.estimatedDurationHours,

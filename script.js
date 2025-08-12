@@ -324,7 +324,7 @@ serviceForm.addEventListener('submit', async function(e) {
         technician: formData.get('technician'),
         description: formData.get('description'),
         cost: parseFloat(formData.get('cost')),
-        priority: formData.get('priority'),
+
         status: formData.get('status'),
         notes: formData.get('notes'),
         recordDate: new Date().toISOString().split('T')[0]
@@ -378,10 +378,8 @@ function getMachineTypeDisplayName(machineType) {
 // Get technician name by ID
 function getTechnicianName(technicianId) {
     const technicianMap = {
-        '1': 'João Silva - Mecânica Geral',
-        '2': 'Maria Santos - Eletrônica',
-        '3': 'Pedro Costa - Manutenção Preventiva',
-        '4': 'Ana Oliveira - Calibração'
+        '1': 'Martins',
+        '2': 'Outros'
     };
     return technicianMap[technicianId] || technicianId;
 }
@@ -397,16 +395,7 @@ function getStatusDisplayName(status) {
     return statusMap[status] || status;
 }
 
-// Get priority display name
-function getPriorityDisplayName(priority) {
-    const priorityMap = {
-        'low': 'Baixa',
-        'medium': 'Média',
-        'high': 'Alta',
-        'urgent': 'Urgente'
-    };
-    return priorityMap[priority] || priority;
-}
+
 
 // Display store-specific report
 async function displayStoreReport(storeCode) {
@@ -723,7 +712,7 @@ function displayServices() {
                             <strong>Descrição:</strong> ${service.description}<br>
                             <strong>Custo:</strong> R$ ${service.cost.toFixed(2)}<br>
                             <strong>Status:</strong> ${getStatusDisplayName(service.status)}<br>
-                            <strong>Prioridade:</strong> ${getPriorityDisplayName(service.priority)}<br>
+
                             <strong>Registrado em:</strong> ${service.recordDate}
                             ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
                         </div>

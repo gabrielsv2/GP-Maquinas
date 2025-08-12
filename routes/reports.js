@@ -139,7 +139,7 @@ router.post('/store', [
                 serviceDate: s.service_date,
                 cost: s.cost,
                 status: s.status,
-                priority: s.priority
+
             }))
         };
 
@@ -348,8 +348,7 @@ router.post('/technicians', [
                     COUNT(DISTINCT sv.store_id) as stores_served,
                     MAX(sv.service_date) as last_service_date,
                     AVG(sv.actual_duration_hours) as average_duration,
-                    COUNT(CASE WHEN sv.status = 'completed' THEN 1 END) as completed_services,
-                    COUNT(CASE WHEN sv.priority = 'urgent' THEN 1 END) as urgent_services
+                    COUNT(CASE WHEN sv.status = 'completed' THEN 1 END) as completed_services
                 FROM technicians t
                 LEFT JOIN services sv ON t.technician_id = sv.technician_id
                 WHERE sv.service_date BETWEEN $1 AND $2 OR sv.service_date IS NULL
@@ -371,8 +370,7 @@ router.post('/technicians', [
                     COUNT(DISTINCT sv.store_id) as stores_served,
                     MAX(sv.service_date) as last_service_date,
                     AVG(sv.actual_duration_hours) as average_duration,
-                    COUNT(CASE WHEN sv.status = 'completed' THEN 1 END) as completed_services,
-                    COUNT(CASE WHEN sv.priority = 'urgent' THEN 1 END) as urgent_services
+                    COUNT(CASE WHEN sv.status = 'completed' THEN 1 END) as completed_services
                 FROM technicians t
                 LEFT JOIN services sv ON t.technician_id = sv.technician_id
                 WHERE (sv.service_date BETWEEN $1 AND $2 OR sv.service_date IS NULL)
@@ -398,8 +396,7 @@ router.post('/technicians', [
                 storesServed: parseInt(row.stores_served) || 0,
                 lastServiceDate: row.last_service_date,
                 averageDuration: parseFloat(row.average_duration) || 0,
-                completedServices: parseInt(row.completed_services) || 0,
-                urgentServices: parseInt(row.urgent_services) || 0
+                completedServices: parseInt(row.completed_services) || 0
             })),
             summary: {
                 totalTechnicians: result.rows.length,
