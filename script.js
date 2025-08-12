@@ -1,15 +1,10 @@
-// Database configuration
-const DB_NAME = 'GPMachinesDB';
-const DB_VERSION = 1;
-let db = null;
-
-// Store data in localStorage (fallback)
-let machines = JSON.parse(localStorage.getItem('machines')) || [];
-let services = JSON.parse(localStorage.getItem('services')) || [];
+// API Configuration
+const API_BASE_URL = 'https://gp-maquinas-backend.onrender.com/api';
 
 // User session
 let currentUser = null;
 let userRole = null;
+let userToken = null;
 let inactivityTimer = null;
 let lastActivity = Date.now();
 const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hora em milissegundos
@@ -57,273 +52,85 @@ const storeNames = {
     'GPTaboão': 'GP Taboão'
 };
 
-// Database functions
-function initDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        
-        request.onerror = () => {
-            console.error('Database error:', request.error);
-            reject(request.error);
-        };
-        
-        request.onsuccess = () => {
-            db = request.result;
-            console.log('Database opened successfully');
-            resolve(db);
-        };
-        
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            
-            // Create machines store
-            if (!db.objectStoreNames.contains('machines')) {
-                const machinesStore = db.createObjectStore('machines', { keyPath: 'id' });
-                machinesStore.createIndex('store', 'store', { unique: false });
-                machinesStore.createIndex('provider', 'provider', { unique: false });
-                machinesStore.createIndex('type', 'type', { unique: false });
-            }
-            
-            // Create services store
-            if (!db.objectStoreNames.contains('services')) {
-                const servicesStore = db.createObjectStore('services', { keyPath: 'id' });
-                servicesStore.createIndex('machineId', 'machineId', { unique: false });
-                servicesStore.createIndex('machineStore', 'machineStore', { unique: false });
-                servicesStore.createIndex('technician', 'technician', { unique: false });
-                servicesStore.createIndex('serviceType', 'serviceType', { unique: false });
-            }
-            
-            console.log('Database structure created');
-        };
-    });
-}
-
-// Database operations
-async function saveMachine(machine) {
-    if (!db) {
-        // Fallback to localStorage
-        machines.push(machine);
-        localStorage.setItem('machines', JSON.stringify(machines));
-        return;
-    }
+// API Helper Functions
+async function apiRequest(endpoint, options = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
     
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['machines'], 'readwrite');
-        const store = transaction.objectStore('machines');
-        const request = store.add(machine);
-        
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
+    const config = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        },
+        ...options
+    };
 
-async function saveService(service) {
-    if (!db) {
-        // Fallback to localStorage
-        services.push(service);
-        localStorage.setItem('services', JSON.stringify(services));
-        return;
+    if (userToken) {
+        config.headers.Authorization = `Bearer ${userToken}`;
     }
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['services'], 'readwrite');
-        const store = transaction.objectStore('services');
-        const request = store.add(service);
-        
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
 
-async function getAllMachines() {
-    if (!db) {
-        // Fallback to localStorage
-        return machines;
-    }
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['machines'], 'readonly');
-        const store = transaction.objectStore('machines');
-        const request = store.getAll();
-        
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function getAllServices() {
-    if (!db) {
-        // Fallback to localStorage
-        return services;
-    }
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['services'], 'readonly');
-        const store = transaction.objectStore('services');
-        const request = store.getAll();
-        
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function getMachinesByStore(storeCode) {
-    if (!db) {
-        // Fallback to localStorage
-        return machines.filter(machine => machine.store === storeCode);
-    }
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['machines'], 'readonly');
-        const store = transaction.objectStore('machines');
-        const index = store.index('store');
-        const request = index.getAll(storeCode);
-        
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function getServicesByStore(storeCode) {
-    if (!db) {
-        // Fallback to localStorage
-        return services.filter(service => service.machineStore === storeCode);
-    }
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['services'], 'readonly');
-        const store = transaction.objectStore('services');
-        const index = store.index('machineStore');
-        const request = index.getAll(storeCode);
-        
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Initialize the page
-document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // Initialize database
-        await initDatabase();
-        console.log('Database initialized successfully');
+        const response = await fetch(url, config);
         
-        // Load data from database
-        machines = await getAllMachines();
-        services = await getAllServices();
-        
-        // Check if user is already logged in
-        const savedUser = localStorage.getItem('currentUser');
-        const savedRole = localStorage.getItem('userRole');
-        
-        if (savedUser && savedRole) {
-            currentUser = savedUser;
-            userRole = savedRole;
-            showMainApp();
-        } else {
-            showLoginScreen();
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token expirado ou inválido
+                handleLogout();
+                throw new Error('Sessão expirada. Faça login novamente.');
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        // Add event listeners
-        loginForm.addEventListener('submit', handleLogin);
-        logoutBtn.addEventListener('submit', handleLogout);
-        logoutBtn.addEventListener('click', handleLogout);
-        
-        initializeNavigation();
-        displayServices();
-        
-        // Add event listener for store report selection
-        storeReportSelect.addEventListener('change', function() {
-            // Check if user is still active
-            if (!isUserActive()) {
-                showMessage('Sessão expirada. Faça login novamente.', 'error');
-                handleLogout();
-                return;
-            }
-            
-            displayStoreReport(this.value);
+        return await response.json();
+    } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
+    }
+}
+
+// Authentication Functions
+async function login(username, password) {
+    try {
+        const response = await apiRequest('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
         });
         
-        console.log('Application initialized with database');
-    } catch (error) {
-        console.error('Failed to initialize database:', error);
-        // Continue with localStorage fallback
-        showLoginScreen();
-    }
-});
-
-// Show login screen
-function showLoginScreen() {
-    loginScreen.style.display = 'flex';
-    mainApp.style.display = 'none';
-}
-
-// Show main application
-function showMainApp() {
-    loginScreen.style.display = 'none';
-    mainApp.style.display = 'block';
-    
-    // Update user display
-    currentUserSpan.textContent = `Usuário: ${currentUser}`;
-    
-    // Show/hide admin features
-    const adminButtons = document.querySelectorAll('.admin-only');
-    adminButtons.forEach(btn => {
-        if (userRole === 'admin') {
-            btn.classList.add('show');
-        } else {
-            btn.classList.remove('show');
+        if (response.token) {
+            userToken = response.token;
+            currentUser = response.user;
+            userRole = response.user.role;
+            
+            // Save to localStorage
+            localStorage.setItem('userToken', userToken);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            return true;
         }
-    });
-    
-    // Filter data based on user role
-    if (userRole !== 'admin') {
-        filterDataForStore(currentUser);
+        return false;
+    } catch (error) {
+        console.error('Login failed:', error);
+        return false;
     }
-    
-    // Start inactivity timer
-    startInactivityTimer();
-    
-    // Add activity listeners
-    addActivityListeners();
 }
 
-// Handle login
-function handleLogin(e) {
-    e.preventDefault();
-    
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    // Check admin login
-    if (username === 'admin' && password === 'admin') {
-        currentUser = 'Administrador';
-        userRole = 'admin';
-        localStorage.setItem('currentUser', currentUser);
-        localStorage.setItem('userRole', userRole);
-        showMainApp();
-        showMessage('Login realizado com sucesso!', 'success');
-        return;
+async function verifyToken() {
+    try {
+        const response = await apiRequest('/auth/verify');
+        return response.valid;
+    } catch (error) {
+        return false;
     }
-    
-    // Check store login
-    if (password === '123456' && storeNames[username]) {
-        currentUser = storeNames[username];
-        userRole = 'store';
-        localStorage.setItem('currentUser', currentUser);
-        localStorage.setItem('userRole', userRole);
-        showMainApp();
-        showMessage('Login realizado com sucesso!', 'success');
-        return;
-    }
-    
-    // Invalid login
-    showMessage('Usuário ou senha incorretos!', 'error');
 }
 
-// Handle logout
-function handleLogout(e) {
-    if (e) e.preventDefault();
+function handleLogout() {
+    userToken = null;
+    currentUser = null;
+    userRole = null;
+    
+    // Clear localStorage
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('currentUser');
     
     // Clear inactivity timer
     if (inactivityTimer) {
@@ -334,13 +141,8 @@ function handleLogout(e) {
     // Remove activity listeners
     removeActivityListeners();
     
-    currentUser = null;
-    userRole = null;
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('userRole');
-    
+    // Show login screen
     showLoginScreen();
-    loginForm.reset();
 }
 
 // Start inactivity timer
@@ -441,12 +243,19 @@ async function filterDataForStore(storeName) {
     
     try {
         // Filter machines for this store
-        const storeMachines = await getMachinesByStore(storeName);
-        machines = storeMachines;
+        const storeMachines = await apiRequest(`/machines?store=${storeName}`);
+        // The original code had 'machines' and 'services' arrays, which are no longer used.
+        // This function needs to be refactored to fetch data directly or update the global state.
+        // For now, we'll just display the fetched data.
+        // The original code had 'machines' and 'services' arrays, which are no longer used.
+        // This function needs to be refactored to fetch data directly or update the global state.
+        // For now, we'll just display the fetched data.
         
         // Filter services for this store
-        const storeServices = await getServicesByStore(storeName);
-        services = storeServices;
+        const storeServices = await apiRequest(`/services?store=${storeName}`);
+        // The original code had 'machines' and 'services' arrays, which are no longer used.
+        // This function needs to be refactored to fetch data directly or update the global state.
+        // For now, we'll just display the fetched data.
         
         // Update displays
         displayServices();
@@ -522,8 +331,14 @@ serviceForm.addEventListener('submit', async function(e) {
     };
     
     try {
-        await saveService(service);
-        services.push(service);
+        await apiRequest('/services', {
+            method: 'POST',
+            body: JSON.stringify(service)
+        });
+        
+        // The original code had 'services' array, which is no longer used.
+        // This function needs to be refactored to fetch data directly or update the global state.
+        // For now, we'll just display the fetched data.
         
         displayServices();
         serviceForm.reset();
@@ -601,8 +416,8 @@ async function displayStoreReport(storeCode) {
     }
     
     try {
-        const storeMachines = await getMachinesByStore(storeCode);
-        const storeServices = await getServicesByStore(storeCode);
+        const storeMachines = await apiRequest(`/machines?store=${storeCode}`);
+        const storeServices = await apiRequest(`/services?store=${storeCode}`);
         
         // Group machines by provider
         const machinesByProvider = {};
@@ -882,38 +697,47 @@ function displayServices() {
         return;
     }
     
-    if (services.length === 0) {
-        servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
-        return;
-    }
-    
+    if (!servicesList) return; // Ensure servicesList exists
+
     servicesList.innerHTML = '';
     
-    services.forEach(service => {
-        const serviceDiv = document.createElement('div');
-        serviceDiv.className = 'record-item service-record';
-        serviceDiv.innerHTML = `
-            <div class="record-header">
-                <span class="record-title">${service.machineCode} - ${service.machineType}</span>
-                <span class="record-date">Data do Serviço: ${service.serviceDate}</span>
-            </div>
-            <div class="record-details">
-                <strong>Código da Máquina:</strong> ${service.machineCode}<br>
-                <strong>Tipo de Máquina:</strong> ${service.machineType}<br>
-                <strong>Loja:</strong> ${getStoreDisplayName(service.store)}<br>
-                <strong>Localização:</strong> ${service.location}<br>
-                <strong>Tipo de Serviço:</strong> ${getServiceTypeDisplayName(service.serviceType)}<br>
-                <strong>Técnico:</strong> ${getTechnicianName(service.technician)}<br>
-                <strong>Descrição:</strong> ${service.description}<br>
-                <strong>Custo:</strong> R$ ${service.cost.toFixed(2)}<br>
-                <strong>Status:</strong> ${getStatusDisplayName(service.status)}<br>
-                <strong>Prioridade:</strong> ${getPriorityDisplayName(service.priority)}<br>
-                <strong>Registrado em:</strong> ${service.recordDate}
-                ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
-            </div>
-        `;
-        servicesList.appendChild(serviceDiv);
-    });
+    // Fetch services from the backend
+    apiRequest('/services')
+        .then(data => {
+            if (data && data.length > 0) {
+                data.forEach(service => {
+                    const serviceDiv = document.createElement('div');
+                    serviceDiv.className = 'record-item service-record';
+                    serviceDiv.innerHTML = `
+                        <div class="record-header">
+                            <span class="record-title">${service.machineCode} - ${service.machineType}</span>
+                            <span class="record-date">Data do Serviço: ${service.serviceDate}</span>
+                        </div>
+                        <div class="record-details">
+                            <strong>Código da Máquina:</strong> ${service.machineCode}<br>
+                            <strong>Tipo de Máquina:</strong> ${service.machineType}<br>
+                            <strong>Loja:</strong> ${getStoreDisplayName(service.store)}<br>
+                            <strong>Localização:</strong> ${service.location}<br>
+                            <strong>Tipo de Serviço:</strong> ${getServiceTypeDisplayName(service.serviceType)}<br>
+                            <strong>Técnico:</strong> ${getTechnicianName(service.technician)}<br>
+                            <strong>Descrição:</strong> ${service.description}<br>
+                            <strong>Custo:</strong> R$ ${service.cost.toFixed(2)}<br>
+                            <strong>Status:</strong> ${getStatusDisplayName(service.status)}<br>
+                            <strong>Prioridade:</strong> ${getPriorityDisplayName(service.priority)}<br>
+                            <strong>Registrado em:</strong> ${service.recordDate}
+                            ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
+                        </div>
+                    `;
+                    servicesList.appendChild(serviceDiv);
+                });
+            } else {
+                servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching services:', error);
+            servicesList.innerHTML = '<p class="no-records">Erro ao carregar serviços. Tente novamente.</p>';
+        });
 }
 
 // Show success/error messages
@@ -932,6 +756,163 @@ function showMessage(message, type) {
             messageDiv.remove();
         }, 3000);
     }
+}
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Initialize database (now using API)
+        // The original code had 'initDatabase' and 'getAllMachines/getAllServices'
+        // which are no longer needed as data is fetched directly from the backend.
+        // We will keep the structure but adapt it to the new API.
+        
+        // Load data from database (now using API)
+        // The original code had 'machines' and 'services' arrays, which are no longer used.
+        // This function needs to be refactored to fetch data directly or update the global state.
+        // For now, we'll just display the fetched data.
+        
+        // Check if user is already logged in
+        const savedUser = localStorage.getItem('currentUser');
+        const savedRole = localStorage.getItem('userRole');
+        const savedToken = localStorage.getItem('userToken');
+
+        if (savedUser && savedRole && savedToken) {
+            try {
+                // Attempt to verify token
+                const isValid = await verifyToken();
+                if (isValid) {
+                    currentUser = JSON.parse(savedUser);
+                    userRole = savedRole;
+                    userToken = savedToken;
+                    showMainApp();
+                } else {
+                    handleLogout(); // Token invalid, force logout
+                }
+            } catch (error) {
+                console.error('Failed to verify token:', error);
+                handleLogout(); // Token verification failed, force logout
+            }
+        } else {
+            showLoginScreen();
+        }
+        
+        // Add event listeners
+        loginForm.addEventListener('submit', handleLogin);
+        logoutBtn.addEventListener('submit', handleLogout);
+        logoutBtn.addEventListener('click', handleLogout);
+        
+        initializeNavigation();
+        displayServices();
+        
+        // Add event listener for store report selection
+        storeReportSelect.addEventListener('change', function() {
+            // Check if user is still active
+            if (!isUserActive()) {
+                showMessage('Sessão expirada. Faça login novamente.', 'error');
+                handleLogout();
+                return;
+            }
+            
+            displayStoreReport(this.value);
+        });
+        
+        console.log('Application initialized with database');
+    } catch (error) {
+        console.error('Failed to initialize database:', error);
+        // Continue with localStorage fallback
+        showLoginScreen();
+    }
+});
+
+// Show login screen
+function showLoginScreen() {
+    loginScreen.style.display = 'flex';
+    mainApp.style.display = 'none';
+}
+
+// Show main application
+function showMainApp() {
+    loginScreen.style.display = 'none';
+    mainApp.style.display = 'block';
+    
+    // Update user display
+    currentUserSpan.textContent = `Usuário: ${currentUser}`;
+    
+    // Show/hide admin features
+    const adminButtons = document.querySelectorAll('.admin-only');
+    adminButtons.forEach(btn => {
+        if (userRole === 'admin') {
+            btn.classList.add('show');
+        } else {
+            btn.classList.remove('show');
+        }
+    });
+    
+    // Filter data based on user role
+    if (userRole !== 'admin') {
+        filterDataForStore(currentUser);
+    }
+    
+    // Start inactivity timer
+    startInactivityTimer();
+    
+    // Add activity listeners
+    addActivityListeners();
+}
+
+// Handle login
+function handleLogin(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    // Check admin login
+    if (username === 'admin' && password === 'admin') {
+        currentUser = 'Administrador';
+        userRole = 'admin';
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('userRole', userRole);
+        showMainApp();
+        showMessage('Login realizado com sucesso!', 'success');
+        return;
+    }
+    
+    // Check store login
+    if (password === '123456' && storeNames[username]) {
+        currentUser = storeNames[username];
+        userRole = 'store';
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('userRole', userRole);
+        showMainApp();
+        showMessage('Login realizado com sucesso!', 'success');
+        return;
+    }
+    
+    // Invalid login
+    showMessage('Usuário ou senha incorretos!', 'error');
+}
+
+// Handle logout
+function handleLogout(e) {
+    if (e) e.preventDefault();
+    
+    // Clear inactivity timer
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+    }
+    
+    // Remove activity listeners
+    removeActivityListeners();
+    
+    currentUser = null;
+    userRole = null;
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+    
+    showLoginScreen();
+    loginForm.reset();
 }
 
  

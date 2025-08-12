@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: gp-maquinas-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: NEON_HOST
+        sync: false
+      - key: NEON_PORT
+        sync: false
+      - key: NEON_DATABASE
+        sync: false
+      - key: NEON_USERNAME
+        sync: false
+      - key: NEON_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: CORS_ORIGIN
+        value: https://sistema-gp-maquinas.netlify.app
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
