@@ -1,6 +1,39 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { authenticateToken, requireStoreAccess } = require('./auth');
+const authRouter = require('./auth');
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Token de acesso necessário' });
+    }
+
+    try {
+        const jwt = require('jsonwebtoken');
+        const config = require('../config');
+        const decoded = jwt.verify(token, config.security.jwtSecret);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(403).json({ error: 'Token inválido ou expirado' });
+    }
+};
+
+const requireStoreAccess = (req, res, next) => {
+    if (req.user.role === 'admin') {
+        return next();
+    }
+    
+    const storeId = req.params.storeId || req.body.storeId;
+    if (req.user.store !== storeId) {
+        return res.status(403).json({ 
+            error: 'Acesso negado a esta loja' 
+        });
+    }
+    
+    next();
+};
 const db = require('../database');
 
 const router = express.Router();

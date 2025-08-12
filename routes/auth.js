@@ -196,9 +196,4 @@ const requireStoreAccess = (req, res, next) => {
     next();
 };
 
-module.exports = {
-    router,
-    authenticateToken,
-    requireAdmin,
-    requireStoreAccess
-};
+module.exports = router;
