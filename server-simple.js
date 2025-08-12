@@ -23,29 +23,18 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Caminho da pasta public
-const publicPath = path.join(__dirname, 'public');
+// Servir arquivos estáticos da raiz
+app.use(express.static(__dirname));
 
-// Verifica se a pasta public existe
-if (fs.existsSync(publicPath)) {
-  // Se existir, serve arquivos estáticos
-  app.use(express.static(publicPath));
+// Rota principal para index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-  // Rota principal para index.html
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
-  });
-
-  // Rota para admin dashboard
-  app.get('/admin', (req, res) => {
-    res.sendFile(path.join(publicPath, 'admin-dashboard.html'));
-  });
-} else {
-  // Se não existir, responde com texto
-  app.get('/', (req, res) => {
-    res.send('🚀 API GP Máquinas rodando sem frontend.');
-  });
-}
+// Rota para admin dashboard
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
 
 // Rotas da API
 app.use('/api/auth', authRoutes);
@@ -79,5 +68,5 @@ app.use('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'desenvolvimento'}`);
-  console.log(`📁 Pasta public: ${fs.existsSync(publicPath) ? 'Encontrada' : 'Não encontrada'}`);
+  console.log(`📁 Servindo arquivos estáticos da raiz`);
 });

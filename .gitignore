@@ -10,6 +10,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+src.env
 
 # Logs
 logs
@@ -98,8 +99,12 @@ jspm_packages/
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
+
+# Netlify
+.netlify/
+
+# Render
+.render/
 
 # Temporary files
 *.tmp
