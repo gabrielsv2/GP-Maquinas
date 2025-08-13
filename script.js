@@ -355,9 +355,9 @@ serviceForm.addEventListener('submit', async function(e) {
         machineType: formData.get('machineType'),
         storeId: formData.get('storeLocation'),
         location: formData.get('location'),
-        serviceTypeId: formData.get('serviceType'),
+        serviceTypeId: getServiceTypeId(formData.get('serviceType')),
         serviceDate: formData.get('serviceDate'),
-        technicianId: formData.get('technician'),
+        technicianId: getTechnicianId(formData.get('technician')),
         description: formData.get('description'),
         cost: parseFloat(formData.get('cost')),
         status: formData.get('status'),
@@ -415,6 +415,31 @@ function getMachineTypeDisplayName(machineType) {
         'Outros': 'Outros'
     };
     return typeMap[machineType] || machineType;
+}
+
+// Get service type ID from frontend value
+function getServiceTypeId(frontendValue) {
+    const serviceTypeMap = {
+        'belt-replacement': 1,
+        'engine-replacement': 2,
+        'flat-replacement': 3,
+        'tube-air-replacement': 4,
+        'repair': 5,
+        'preventive-maintenance': 6,
+        'calibration': 7,
+        'inspection': 8,
+        'other': 9
+    };
+    return serviceTypeMap[frontendValue] || 1; // Default to 1 if not found
+}
+
+// Get technician ID from frontend value
+function getTechnicianId(frontendValue) {
+    const technicianMap = {
+        '1': 1,        // Martins
+        '2': 2         // Outros
+    };
+    return parseInt(frontendValue) || 1; // Convert to number, default to 1
 }
 
 // Get technician name by ID
