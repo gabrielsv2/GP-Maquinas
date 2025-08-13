@@ -63,7 +63,10 @@ const storeNames = {
 
 // API Helper Functions
 async function apiRequest(endpoint, options = {}) {
-    const url = `https://gp-maquinas-backend.onrender.com/api${endpoint}`;
+    // Use local proxy in development, direct API in production
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
+    const url = `${baseUrl}/api${endpoint}`;
     
     const config = {
         method: 'GET',
@@ -81,13 +84,32 @@ async function apiRequest(endpoint, options = {}) {
     try {
         const response = await fetch(url, config);
         
+        // Log response details for debugging
+        console.log(`🔍 API Request: ${url}`);
+        console.log(`📊 Response Status: ${response.status}`);
+        console.log(`📋 Response Headers:`, Object.fromEntries(response.headers.entries()));
+        
         if (!response.ok) {
             if (response.status === 401) {
                 // Token expirado ou inválido
-                handleLogout();
+                handleAuthError(new Error('Sessão expirada. Faça login novamente.'));
                 throw new Error('Sessão expirada. Faça login novamente.');
             }
-            throw new Error(`HTTP error! status: ${response.status}`);
+            
+            // Try to get response text to see what's being returned
+            const responseText = await response.text();
+            console.error('❌ Response text:', responseText);
+            
+            throw new Error(`HTTP error! status: ${response.status}, response: ${responseText.substring(0, 200)}`);
+        }
+        
+        // Check content type before parsing JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const responseText = await response.text();
+            console.error('❌ Invalid content type:', contentType);
+            console.error('❌ Response text:', responseText);
+            throw new Error(`Invalid content type: ${contentType}. Expected JSON but got: ${responseText.substring(0, 200)}`);
         }
         
         return await response.json();
@@ -132,7 +154,10 @@ async function verifyToken() {
         
         console.log('🔐 Verificando token:', userToken.substring(0, 20) + '...');
         
-        const response = await fetch('https://gp-maquinas-backend.onrender.com/api/auth/verify', {
+        // Use local proxy in development, direct API in production
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
+        const response = await fetch(`${baseUrl}/api/auth/verify`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${userToken}`
@@ -215,6 +240,41 @@ function isUserActive() {
     return true;
 }
 
+// Check authentication status
+async function checkAuthStatus() {
+    if (!userToken) {
+        console.log('❌ Nenhum token encontrado');
+        return false;
+    }
+    
+    try {
+        // Use local proxy in development, direct API in production
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
+        const response = await fetch(`${baseUrl}/api/auth/verify`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${userToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('🔐 Auth check status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Auth check successful:', data);
+            return data.valid === true;
+        } else {
+            console.log('❌ Auth check failed:', response.status);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Auth check error:', error);
+        return false;
+    }
+}
+
 // Add activity listeners to detect user interaction
 function addActivityListeners() {
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -274,20 +334,9 @@ async function filterDataForStore(storeName) {
     }
     
     try {
-        // Filter machines for this store
-        const storeMachines = await apiRequest(`/machines?store=${storeName}`);
-        // The original code had 'machines' and 'services' arrays, which are no longer used.
-        // This function needs to be refactored to fetch data directly or update the global state.
-        // For now, we'll just display the fetched data.
-        // The original code had 'machines' and 'services' arrays, which are no longer used.
-        // This function needs to be refactored to fetch data directly or update the global state.
-        // For now, we'll just display the fetched data.
-        
-        // Filter services for this store
+        // Note: /api/machines endpoint doesn't exist in the backend
+        // We'll use only services for now
         const storeServices = await apiRequest(`/services?store=${storeName}`);
-        // The original code had 'machines' and 'services' arrays, which are no longer used.
-        // This function needs to be refactored to fetch data directly or update the global state.
-        // For now, we'll just display the fetched data.
         
         // Update displays
         displayServices();
@@ -500,9 +549,36 @@ async function displayStoreReport(storeCode) {
         return;
     }
     
+    // Check if user is still active
+    if (!isUserActive()) {
+        showMessage('Sessão expirada. Faça login novamente.', 'error');
+        handleLogout();
+        return;
+    }
+    
+    // Verify token before making requests
+    const isTokenValid = await checkAuthStatus();
+    if (!isTokenValid) {
+        showMessage('Token inválido. Faça login novamente.', 'error');
+        handleLogout();
+        return;
+    }
+    
     try {
-        const storeMachines = await apiRequest(`/machines?store=${storeCode}`);
+        // Note: /api/machines endpoint doesn't exist in the backend
+        // We'll use only services for now
         const storeServices = await apiRequest(`/services?store=${storeCode}`);
+        
+        // For now, we'll create a mock machines array based on services
+        const storeMachines = storeServices.map(service => ({
+            id: service.service_id,
+            type: service.machine_type,
+            provider: service.technician_name,
+            mechanicName: service.technician_name,
+            location: service.location,
+            registrationDate: service.record_date,
+            serviceDate: service.service_date
+        }));
         
         // Group machines by provider
         const machinesByProvider = {};
@@ -721,9 +797,32 @@ async function displayStoreReport(storeCode) {
         }
         
         storeReport.innerHTML = reportHTML;
+        
+        // Hide retry button on success
+        const retryReportBtn = document.getElementById('retryReportBtn');
+        if (retryReportBtn) {
+            retryReportBtn.style.display = 'none';
+        }
     } catch (error) {
         console.error('Error loading store report:', error);
-        storeReport.innerHTML = '<p class="no-records">Erro ao carregar relatório. Tente novamente.</p>';
+        
+        let errorMessage = 'Erro ao carregar relatório. Tente novamente.';
+        
+        if (error.message.includes('Sessão expirada')) {
+            errorMessage = 'Sessão expirada. Faça login novamente.';
+        } else if (error.message.includes('Invalid content type')) {
+            errorMessage = 'Erro de comunicação com o servidor. Verifique sua conexão.';
+        } else if (error.message.includes('HTTP error')) {
+            errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+        }
+        
+        storeReport.innerHTML = `<p class="no-records">${errorMessage}</p>`;
+        
+        // Show retry button
+        const retryReportBtn = document.getElementById('retryReportBtn');
+        if (retryReportBtn) {
+            retryReportBtn.style.display = 'inline-block';
+        }
     }
 }
 
@@ -774,7 +873,7 @@ function getMachineTypeDisplayName(machineType) {
 
 
 // Display service records
-function displayServices() {
+async function displayServices() {
     // Check if user is still active
     if (!isUserActive()) {
         showMessage('Sessão expirada. Faça login novamente.', 'error');
@@ -784,11 +883,19 @@ function displayServices() {
     
     if (!servicesList) return; // Ensure servicesList exists
 
-    servicesList.innerHTML = '';
+    servicesList.innerHTML = '<p class="no-records">Carregando serviços...</p>';
     
-    // Fetch services from the backend
-    apiRequest('/services')
-        .then(data => {
+    try {
+        // Verify token before making requests
+        const isTokenValid = await checkAuthStatus();
+        if (!isTokenValid) {
+            showMessage('Token inválido. Faça login novamente.', 'error');
+            handleLogout();
+            return;
+        }
+        
+        // Fetch services from the backend
+        const data = await apiRequest('/services');
             if (data && data.length > 0) {
                 data.forEach(service => {
                     const serviceDiv = document.createElement('div');
@@ -818,11 +925,21 @@ function displayServices() {
             } else {
                 servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
             }
-        })
-        .catch(error => {
-            console.error('Error fetching services:', error);
-            servicesList.innerHTML = '<p class="no-records">Erro ao carregar serviços. Tente novamente.</p>';
-        });
+        } catch (error) {
+            console.error('Error loading services:', error);
+            
+            let errorMessage = 'Erro ao carregar serviços. Tente novamente.';
+            
+            if (error.message.includes('Sessão expirada')) {
+                errorMessage = 'Sessão expirada. Faça login novamente.';
+            } else if (error.message.includes('Invalid content type')) {
+                errorMessage = 'Erro de comunicação com o servidor. Verifique sua conexão.';
+            } else if (error.message.includes('HTTP error')) {
+                errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+            }
+            
+            servicesList.innerHTML = `<p class="no-records">${errorMessage}</p>`;
+        }
 }
 
 // Show success/error messages
@@ -840,6 +957,28 @@ function showMessage(message, type) {
         setTimeout(() => {
             messageDiv.remove();
         }, 3000);
+    }
+}
+
+// Reload page with cache refresh
+function reloadPage() {
+    console.log('🔄 Recarregando página...');
+    window.location.reload(true);
+}
+
+// Handle authentication errors
+function handleAuthError(error) {
+    console.error('🔐 Auth error:', error);
+    
+    if (error.message.includes('Sessão expirada') || 
+        error.message.includes('Token inválido') ||
+        error.message.includes('401')) {
+        showMessage('Sessão expirada. Redirecionando para login...', 'error');
+        setTimeout(() => {
+            handleLogout();
+        }, 2000);
+    } else {
+        showMessage('Erro de comunicação. Tente novamente.', 'error');
     }
 }
 
@@ -904,6 +1043,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayStoreReport(this.value);
         });
         
+        // Add event listener for retry button
+        const retryReportBtn = document.getElementById('retryReportBtn');
+        if (retryReportBtn) {
+            retryReportBtn.addEventListener('click', function() {
+                const selectedStore = storeReportSelect.value;
+                if (selectedStore) {
+                    displayStoreReport(selectedStore);
+                }
+            });
+        }
+        
         console.log('✅ Aplicação inicializada com autenticação via API');
     } catch (error) {
         console.error('💥 Falha na inicialização da aplicação:', error);
@@ -964,7 +1114,10 @@ async function handleLogin(e) {
     try {
         console.log('Fazendo requisição para /api/auth/login...');
         
-        const response = await fetch('https://gp-maquinas-backend.onrender.com/api/auth/login', {
+        // Use local proxy in development, direct API in production
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
+        const response = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
