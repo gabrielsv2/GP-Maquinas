@@ -314,20 +314,17 @@ serviceForm.addEventListener('submit', async function(e) {
     const formData = new FormData(serviceForm);
     
     const service = {
-        id: Date.now(),
         machineCode: formData.get('machineCode'),
         machineType: formData.get('machineType'),
-        store: formData.get('storeLocation'),
+        storeId: formData.get('storeLocation'),
         location: formData.get('location'),
-        serviceType: formData.get('serviceType'),
+        serviceTypeId: formData.get('serviceType'),
         serviceDate: formData.get('serviceDate'),
-        technician: formData.get('technician'),
+        technicianId: formData.get('technician'),
         description: formData.get('description'),
         cost: parseFloat(formData.get('cost')),
-
         status: formData.get('status'),
-        notes: formData.get('notes'),
-        recordDate: new Date().toISOString().split('T')[0]
+        notes: formData.get('notes')
     };
     
     try {
