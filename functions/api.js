@@ -2,14 +2,12 @@ const express = require('express');
 const serverless = require('serverless-http');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
 
 const app = express();
 
-console.log('🚀 Iniciando Netlify Function para GP Máquinas - V2...');
+console.log('🚀 Iniciando Netlify Function para GP Máquinas - V3...');
 console.log('🌐 CORS Origin:', process.env.CORS_ORIGIN || 'https://gp-services.netlify.app');
 console.log('🔧 NODE_ENV:', process.env.NODE_ENV || 'development');
-console.log('🗄️ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurado' : 'NÃO configurado');
 
 // Middleware
 app.use(cors({
@@ -18,11 +16,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Configuração do banco Neon
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Configuração do banco Neon (comentada temporariamente)
+// const pool = new Pool({
+//     connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
+//     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+// });
 
 // Chave secreta para JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'gp-maquinas-secret-key-2024';
