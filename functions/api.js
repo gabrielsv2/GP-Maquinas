@@ -56,6 +56,8 @@ const stores = [
 // Middleware para validar token JWT
 const authenticateToken = (req, res, next) => {
     console.log('🔍 Verificando autenticação...');
+    console.log('📋 URL da requisição:', req.url);
+    console.log('📋 Método da requisição:', req.method);
     
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -65,7 +67,10 @@ const authenticateToken = (req, res, next) => {
 
     if (!token) {
         console.log('❌ Nenhum token fornecido');
-        return res.status(401).json({ error: 'Token de acesso necessário' });
+        return res.status(401).json({ 
+            error: 'Token de acesso necessário',
+            message: 'É necessário fornecer um token de autenticação válido'
+        });
     }
 
     try {
@@ -75,7 +80,23 @@ const authenticateToken = (req, res, next) => {
         next();
     } catch (error) {
         console.log('❌ Token inválido:', error.message);
-        return res.status(403).json({ error: 'Token inválido ou expirado' });
+        
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ 
+                error: 'Token expirado',
+                message: 'Seu token de acesso expirou. Faça login novamente.'
+            });
+        } else if (error.name === 'JsonWebTokenError') {
+            return res.status(403).json({ 
+                error: 'Token inválido',
+                message: 'Token de acesso inválido. Verifique suas credenciais.'
+            });
+        } else {
+            return res.status(403).json({ 
+                error: 'Erro de autenticação',
+                message: 'Erro ao verificar token de acesso.'
+            });
+        }
     }
 };
 
@@ -180,30 +201,103 @@ app.get('/auth/verify', authenticateToken, (req, res) => {
 
 // Rota para salvar serviços
 app.post('/services', authenticateToken, async (req, res) => {
+    console.log('💾 Tentativa de salvar serviço recebida');
+    console.log('👤 Usuário autenticado:', req.user);
+    console.log('📋 Dados do serviço recebidos:', JSON.stringify(req.body, null, 2));
+    
     try {
         const service = req.body;
         
+        // Validações básicas
+        if (!service) {
+            console.log('❌ Dados do serviço não fornecidos');
+            return res.status(400).json({
+                error: 'Dados do serviço são obrigatórios'
+            });
+        }
+
+        // Validar campos obrigatórios
+        const requiredFields = ['machineCode', 'machineType', 'serviceType', 'serviceDate'];
+        const missingFields = requiredFields.filter(field => !service[field]);
+        
+        if (missingFields.length > 0) {
+            console.log('❌ Campos obrigatórios faltando:', missingFields);
+            return res.status(400).json({
+                error: 'Campos obrigatórios faltando',
+                missingFields: missingFields
+            });
+        }
+
+        // Validar se o usuário tem permissão para salvar na loja
+        if (req.user.role === 'store' && service.store && service.store !== req.user.store) {
+            console.log('❌ Usuário tentando salvar serviço em loja diferente:', {
+                userStore: req.user.store,
+                serviceStore: service.store
+            });
+            return res.status(403).json({
+                error: 'Você só pode salvar serviços na sua própria loja'
+            });
+        }
+
+        // Adicionar informações do usuário ao serviço
+        const serviceToSave = {
+            ...service,
+            createdBy: req.user.username,
+            createdAt: new Date().toISOString(),
+            store: req.user.role === 'store' ? req.user.store : (service.store || 'GPInterlagos')
+        };
+
+        console.log('✅ Serviço validado e preparado para salvar:', JSON.stringify(serviceToSave, null, 2));
+        
         // Aqui você pode adicionar a lógica para salvar no banco de dados
         // Por enquanto, vamos apenas retornar sucesso
-        console.log('Serviço recebido:', service);
+        
+        // Simular ID único
+        const savedService = {
+            ...serviceToSave,
+            id: Date.now() // ID temporário baseado no timestamp
+        };
+        
+        console.log('💾 Serviço salvo com sucesso, ID:', savedService.id);
         
         res.json({
             success: true,
             message: 'Serviço salvo com sucesso',
-            service: service
+            service: savedService
         });
+        
     } catch (error) {
-        console.error('Erro ao salvar serviço:', error);
+        console.error('❌ Erro ao salvar serviço:', error);
+        console.error('❌ Stack trace:', error.stack);
+        
         res.status(500).json({
-            error: 'Erro interno do servidor'
+            error: 'Erro interno do servidor ao salvar serviço',
+            details: process.env.NODE_ENV === 'development' ? error.message : 'Erro interno'
         });
     }
 });
 
 // Rota para buscar serviços
 app.get('/services', authenticateToken, async (req, res) => {
+    console.log('🔍 Busca de serviços solicitada');
+    console.log('👤 Usuário autenticado:', req.user);
+    console.log('📋 Query parameters:', req.query);
+    
     try {
         const { store } = req.query;
+        
+        // Determinar qual loja buscar
+        let targetStore = store;
+        if (req.user.role === 'store') {
+            targetStore = req.user.store;
+            console.log('🏪 Usuário de loja, buscando apenas serviços da loja:', targetStore);
+        } else if (store) {
+            targetStore = store;
+            console.log('👑 Admin buscando serviços da loja:', targetStore);
+        } else {
+            targetStore = 'GPInterlagos'; // Loja padrão
+            console.log('🏪 Nenhuma loja especificada, usando padrão:', targetStore);
+        }
         
         // Aqui você pode adicionar a lógica para buscar do banco de dados
         // Por enquanto, vamos retornar dados simulados
@@ -212,7 +306,7 @@ app.get('/services', authenticateToken, async (req, res) => {
                 id: 1,
                 machineCode: 'ELEV-001',
                 machineType: 'Elevador 1',
-                store: store || 'GPInterlagos',
+                store: targetStore,
                 location: 'Setor A',
                 serviceType: 'belt-replacement',
                 serviceDate: '2024-08-12',
@@ -221,15 +315,24 @@ app.get('/services', authenticateToken, async (req, res) => {
                 cost: 150.00,
                 status: 'completed',
                 notes: 'Correia nova instalada',
-                recordDate: '2024-08-12'
+                recordDate: '2024-08-12',
+                createdBy: 'admin',
+                createdAt: '2024-08-12T10:00:00.000Z'
             }
         ];
         
+        console.log('✅ Serviços encontrados:', mockServices.length);
+        console.log('📋 Serviços retornados:', JSON.stringify(mockServices, null, 2));
+        
         res.json(mockServices);
+        
     } catch (error) {
-        console.error('Erro ao buscar serviços:', error);
+        console.error('❌ Erro ao buscar serviços:', error);
+        console.error('❌ Stack trace:', error.stack);
+        
         res.status(500).json({
-            error: 'Erro interno do servidor'
+            error: 'Erro interno do servidor ao buscar serviços',
+            details: process.env.NODE_ENV === 'development' ? error.message : 'Erro interno'
         });
     }
 });
@@ -270,6 +373,80 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Rota de teste simples
+app.get('/test', (req, res) => {
+    console.log('🧪 Rota de teste simples acessada');
+    res.json({
+        message: '🎉 API funcionando perfeitamente!',
+        timestamp: new Date().toISOString(),
+        routes: {
+            health: '/health',
+            test: '/test',
+            testServices: '/test/services',
+            services: '/services (POST)',
+            machines: '/machines'
+        }
+    });
+});
+
+// Rota de teste para serviços (sem autenticação para debug)
+app.post('/test/services', (req, res) => {
+    console.log('🧪 Teste de validação de serviço (sem autenticação)');
+    console.log('📋 Dados recebidos:', JSON.stringify(req.body, null, 2));
+    
+    try {
+        const service = req.body;
+        
+        // Validações básicas
+        if (!service) {
+            return res.status(400).json({
+                error: 'Dados do serviço são obrigatórios'
+            });
+        }
+
+        // Validar campos obrigatórios
+        const requiredFields = ['machineCode', 'machineType', 'serviceType', 'serviceDate'];
+        const missingFields = requiredFields.filter(field => !service[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                error: 'Campos obrigatórios faltando',
+                missingFields: missingFields
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Serviço validado com sucesso (teste)',
+            service: service
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro no teste:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor no teste'
+        });
+    }
+});
+
+// Rota de teste GET para navegador (sem autenticação para debug)
+app.get('/test/services', (req, res) => {
+    console.log('🧪 Teste GET de validação de serviço (navegador)');
+    
+    res.json({
+        success: true,
+        message: 'API funcionando! Rota de teste acessível via GET',
+        timestamp: new Date().toISOString(),
+        instructions: 'Use POST /test/services para testar com dados de serviço',
+        example: {
+            machineCode: "ELEV-001",
+            machineType: "Elevador 1",
+            serviceType: "belt-replacement",
+            serviceDate: "2024-12-19"
+        }
+    });
+});
+
 // Middleware para rotas não encontradas
 app.use((req, res) => {
     console.log('❌ Rota não encontrada:', req.method, req.url);
@@ -278,10 +455,38 @@ app.use((req, res) => {
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ 
-        error: 'Erro interno do servidor',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado'
+    console.error('❌ Erro global capturado:');
+    console.error('❌ URL:', req.url);
+    console.error('❌ Método:', req.method);
+    console.error('❌ Headers:', req.headers);
+    console.error('❌ Body:', req.body);
+    console.error('❌ Erro:', err.message);
+    console.error('❌ Stack trace:', err.stack);
+    
+    // Determinar o tipo de erro
+    let statusCode = 500;
+    let errorMessage = 'Erro interno do servidor';
+    
+    if (err.name === 'ValidationError') {
+        statusCode = 400;
+        errorMessage = 'Dados inválidos fornecidos';
+    } else if (err.name === 'UnauthorizedError') {
+        statusCode = 401;
+        errorMessage = 'Não autorizado';
+    } else if (err.name === 'ForbiddenError') {
+        statusCode = 403;
+        errorMessage = 'Acesso negado';
+    } else if (err.name === 'NotFoundError') {
+        statusCode = 404;
+        errorMessage = 'Recurso não encontrado';
+    }
+    
+    res.status(statusCode).json({ 
+        error: errorMessage,
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado',
+        timestamp: new Date().toISOString(),
+        path: req.url,
+        method: req.method
     });
 });
 
