@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 
 const app = express();
 
-console.log('🚀 Iniciando Netlify Function para GP Máquinas...');
+console.log('🚀 Iniciando Netlify Function para GP Máquinas - V2...');
 console.log('🌐 CORS Origin:', process.env.CORS_ORIGIN || 'https://gp-services.netlify.app');
 console.log('🔧 NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('🗄️ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurado' : 'NÃO configurado');
