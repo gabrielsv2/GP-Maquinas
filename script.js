@@ -360,7 +360,7 @@ serviceForm.addEventListener('submit', async function(e) {
         technicianId: getTechnicianId(formData.get('technician')),
         description: formData.get('description'),
         cost: parseFloat(formData.get('cost')),
-        status: formData.get('status'),
+        status: getStatusValue(formData.get('status')),
         notes: formData.get('notes')
     };
     
@@ -419,27 +419,41 @@ function getMachineTypeDisplayName(machineType) {
 
 // Get service type ID from frontend value
 function getServiceTypeId(frontendValue) {
+    // O banco usa STRINGS, não números!
     const serviceTypeMap = {
-        'belt-replacement': 1,
-        'engine-replacement': 2,
-        'flat-replacement': 3,
-        'tube-air-replacement': 4,
-        'repair': 5,
-        'preventive-maintenance': 6,
-        'calibration': 7,
-        'inspection': 8,
-        'other': 9
+        'belt-replacement': 'belt-replacement',
+        'engine-replacement': 'engine-replacement',
+        'flat-replacement': 'flat-replacement',
+        'tube-air-replacement': 'tube-air-replacement',
+        'repair': 'repair',
+        'preventive-maintenance': 'preventive-maintenance',
+        'calibration': 'calibration',
+        'inspection': 'inspection',
+        'other': 'other'
     };
-    return serviceTypeMap[frontendValue] || 1; // Default to 1 if not found
+    return serviceTypeMap[frontendValue] || 'repair'; // Default to 'repair' if not found
 }
 
 // Get technician ID from frontend value
 function getTechnicianId(frontendValue) {
+    // O banco usa NÚMEROS para technicians
     const technicianMap = {
         '1': 1,        // Martins
         '2': 2         // Outros
     };
     return parseInt(frontendValue) || 1; // Convert to number, default to 1
+}
+
+// Get status value for backend
+function getStatusValue(frontendValue) {
+    // O banco usa STRINGS específicos
+    const statusMap = {
+        'completed': 'completed',
+        'pending': 'pending',
+        'in_progress': 'in_progress',
+        'cancelled': 'cancelled'
+    };
+    return statusMap[frontendValue] || 'completed'; // Default to 'completed'
 }
 
 // Get technician name by ID
