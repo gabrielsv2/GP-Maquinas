@@ -46,8 +46,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir arquivos estáticos
-app.use(express.static(path.join(__dirname, 'public')));
+// Servir arquivos estáticos (raiz do projeto)
+app.use(express.static(path.join(__dirname)));
 
 // Rotas da API
 app.use('/api/auth', authRoutes);
@@ -66,12 +66,12 @@ app.get('/api/health', (req, res) => {
 
 // Rota principal - servir o index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Rota para todas as outras páginas (SPA)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Middleware de tratamento de erros
