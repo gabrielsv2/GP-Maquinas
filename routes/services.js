@@ -214,7 +214,7 @@ router.post('/', [
                 technician_id, service_date, description, cost, status,
                 notes, estimated_duration_hours, actual_duration_hours, parts_used,
                 warranty_until, record_date
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
         `;
 
@@ -283,15 +283,14 @@ router.put('/:id', [
                 location = $3,
                 description = $4,
                 cost = $5,
-
-                status = $7,
-                notes = $8,
-                estimated_duration_hours = $9,
-                actual_duration_hours = $10,
-                parts_used = $11,
-                warranty_until = $12,
+                status = $6,
+                notes = $7,
+                estimated_duration_hours = $8,
+                actual_duration_hours = $9,
+                parts_used = $10,
+                warranty_until = $11,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE service_id = $13
+            WHERE service_id = $12
             RETURNING *
         `;
 
@@ -301,7 +300,6 @@ router.put('/:id', [
             updateData.location,
             updateData.description,
             updateData.cost,
-
             updateData.status || 'completed',
             updateData.notes || '',
             updateData.estimatedDurationHours,
