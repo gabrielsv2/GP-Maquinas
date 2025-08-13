@@ -336,12 +336,17 @@ function switchSection(sectionName) {
 serviceForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
+    console.log('🧪 Tentativa de salvar serviço iniciada');
+    
     // Check if user is still active
     if (!isUserActive()) {
+        console.log('❌ Usuário não está ativo');
         showMessage('Sessão expirada. Faça login novamente.', 'error');
         handleLogout();
         return;
     }
+    
+    console.log('✅ Usuário ativo, coletando dados do formulário');
     
     const formData = new FormData(serviceForm);
     
@@ -359,11 +364,18 @@ serviceForm.addEventListener('submit', async function(e) {
         notes: formData.get('notes')
     };
     
+    console.log('📋 Dados do serviço coletados:', JSON.stringify(service, null, 2));
+    console.log('🔑 Token do usuário:', userToken ? userToken.substring(0, 20) + '...' : 'NÃO');
+    
     try {
-        await apiRequest('/services', {
+        console.log('🚀 Fazendo requisição para /api/services...');
+        
+        const response = await apiRequest('/services', {
             method: 'POST',
             body: JSON.stringify(service)
         });
+        
+        console.log('✅ Serviço salvo com sucesso:', response);
         
         // The original code had 'services' array, which is no longer used.
         // This function needs to be refactored to fetch data directly or update the global state.
@@ -374,8 +386,9 @@ serviceForm.addEventListener('submit', async function(e) {
         
         showMessage('Serviço registrado com sucesso!', 'success');
     } catch (error) {
-        console.error('Error saving service:', error);
-        showMessage('Erro ao salvar serviço. Tente novamente.', 'error');
+        console.error('❌ Erro ao salvar serviço:', error);
+        console.error('❌ Detalhes do erro:', error.message);
+        showMessage(`Erro ao salvar serviço: ${error.message}`, 'error');
     }
 });
 
