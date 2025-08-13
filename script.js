@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://gp-maquinas-backend.onrender.com/api';
 
 // User session
 let currentUser = null;
@@ -54,7 +54,7 @@ const storeNames = {
 
 // API Helper Functions
 async function apiRequest(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `https://gp-maquinas-backend.onrender.com/api${endpoint}`;
     
     const config = {
         method: 'GET',
@@ -123,7 +123,7 @@ async function verifyToken() {
         
         console.log('🔐 Verificando token:', userToken.substring(0, 20) + '...');
         
-        const response = await fetch('/api/auth/verify', {
+        const response = await fetch('https://gp-maquinas-backend.onrender.com/api/auth/verify', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${userToken}`
@@ -882,7 +882,7 @@ async function handleLogin(e) {
     try {
         console.log('Fazendo requisição para /api/auth/login...');
         
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('https://gp-maquinas-backend.onrender.com/api/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
