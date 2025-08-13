@@ -8,7 +8,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'https://sistema-gp-maquinas.netlify.app',
+    origin: process.env.CORS_ORIGIN || 'https://gp-services.netlify.app',
     credentials: true
 }));
 app.use(express.json());
