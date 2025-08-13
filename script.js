@@ -20,6 +20,15 @@ const storeReportSelect = document.getElementById('storeReportSelect');
 const servicesList = document.getElementById('servicesList');
 const storeReport = document.getElementById('storeReport');
 
+// Debug: Verificar se os elementos foram encontrados
+console.log('🔍 Elementos DOM encontrados:');
+console.log('loginScreen:', loginScreen);
+console.log('mainApp:', mainApp);
+console.log('loginForm:', loginForm);
+console.log('logoutBtn:', logoutBtn);
+console.log('currentUserSpan:', currentUserSpan);
+console.log('serviceForm:', serviceForm);
+
 // Navigation elements
 const navButtons = document.querySelectorAll('.nav-btn');
 const contentSections = document.querySelectorAll('.content-section');
@@ -805,7 +814,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Add event listeners
         console.log('🔗 Adicionando event listeners...');
+        console.log('📝 Adicionando listener para loginForm:', loginForm);
         loginForm.addEventListener('submit', handleLogin);
+        console.log('📝 Adicionando listener para logoutBtn:', logoutBtn);
         logoutBtn.addEventListener('submit', handleLogout);
         logoutBtn.addEventListener('click', handleLogout);
         
@@ -872,6 +883,10 @@ function showMainApp() {
 
 // Handle login
 async function handleLogin(e) {
+    console.log('🚀 handleLogin chamada!');
+    console.log('📋 Evento:', e);
+    console.log('📋 Tipo do evento:', e.type);
+    
     e.preventDefault();
     
     const username = document.getElementById('loginUsername').value;
