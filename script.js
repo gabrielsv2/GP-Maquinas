@@ -419,6 +419,8 @@ function getMachineTypeDisplayName(machineType) {
 
 // Get service type ID from frontend value
 function getServiceTypeId(frontendValue) {
+    console.log('🔍 getServiceTypeId chamada com:', frontendValue);
+    
     // O banco usa STRINGS, não números!
     const serviceTypeMap = {
         'belt-replacement': 'belt-replacement',
@@ -431,21 +433,31 @@ function getServiceTypeId(frontendValue) {
         'inspection': 'inspection',
         'other': 'other'
     };
-    return serviceTypeMap[frontendValue] || 'repair'; // Default to 'repair' if not found
+    
+    const result = serviceTypeMap[frontendValue] || 'repair';
+    console.log('✅ getServiceTypeId retornando:', result);
+    return result;
 }
 
 // Get technician ID from frontend value
 function getTechnicianId(frontendValue) {
+    console.log('🔍 getTechnicianId chamada com:', frontendValue);
+    
     // O banco usa NÚMEROS para technicians
     const technicianMap = {
         '1': 1,        // Martins
         '2': 2         // Outros
     };
-    return parseInt(frontendValue) || 1; // Convert to number, default to 1
+    
+    const result = parseInt(frontendValue) || 1;
+    console.log('✅ getTechnicianId retornando:', result);
+    return result;
 }
 
 // Get status value for backend
 function getStatusValue(frontendValue) {
+    console.log('🔍 getStatusValue chamada com:', frontendValue);
+    
     // O banco usa STRINGS específicos
     const statusMap = {
         'completed': 'completed',
@@ -453,7 +465,10 @@ function getStatusValue(frontendValue) {
         'in_progress': 'in_progress',
         'cancelled': 'cancelled'
     };
-    return statusMap[frontendValue] || 'completed'; // Default to 'completed'
+    
+    const result = statusMap[frontendValue] || 'completed';
+    console.log('✅ getStatusValue retornando:', result);
+    return result;
 }
 
 // Get technician name by ID
