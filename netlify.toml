@@ -1,6 +1,7 @@
 [build]
   publish = "."
   functions = "functions"
+  command = "npm run build"
 
 [[redirects]]
   from = "/api/*"
@@ -15,6 +16,9 @@
 [functions]
   directory = "functions"
   node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "18"
 
 [[headers]]
   for = "/*"

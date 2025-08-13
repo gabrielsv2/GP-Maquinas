@@ -1,20 +1,28 @@
 const express = require('express');
+const serverless = require('serverless-http');
 const cors = require('cors');
-const path = require('path');
 const jwt = require('jsonwebtoken');
+const { Pool } = require('pg');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'https://sistema-gp-maquinas.netlify.app',
+    credentials: true
+}));
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+
+// Configuração do banco Neon
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // Chave secreta para JWT
-const JWT_SECRET = 'gp-maquinas-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'gp-maquinas-secret-key-2024';
 
-// Dados simulados das lojas
+// Dados simulados das lojas (fallback se o banco não estiver disponível)
 const stores = [
     { store_id: 'GPAnhaiaMello', store_name: 'GP Anhaia Mello', region: 'São Paulo' },
     { store_id: 'GPAricanduva', store_name: 'GP Aricanduva', region: 'São Paulo' },
@@ -61,7 +69,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Rota de login
-app.post('/api/auth/login', (req, res) => {
+app.post('/auth/login', async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -134,28 +142,117 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Verificar token
-app.get('/api/auth/verify', authenticateToken, (req, res) => {
+app.get('/auth/verify', authenticateToken, (req, res) => {
     res.json({
         valid: true,
         user: req.user
     });
 });
 
-// Rota principal - servir o index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// Rota para salvar serviços
+app.post('/services', authenticateToken, async (req, res) => {
+    try {
+        const service = req.body;
+        
+        // Aqui você pode adicionar a lógica para salvar no banco de dados
+        // Por enquanto, vamos apenas retornar sucesso
+        console.log('Serviço recebido:', service);
+        
+        res.json({
+            success: true,
+            message: 'Serviço salvo com sucesso',
+            service: service
+        });
+    } catch (error) {
+        console.error('Erro ao salvar serviço:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
 });
 
-// Rota para todas as outras páginas (SPA)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// Rota para buscar serviços
+app.get('/services', authenticateToken, async (req, res) => {
+    try {
+        const { store } = req.query;
+        
+        // Aqui você pode adicionar a lógica para buscar do banco de dados
+        // Por enquanto, vamos retornar dados simulados
+        const mockServices = [
+            {
+                id: 1,
+                machineCode: 'ELEV-001',
+                machineType: 'Elevador 1',
+                store: store || 'GPInterlagos',
+                location: 'Setor A',
+                serviceType: 'belt-replacement',
+                serviceDate: '2024-08-12',
+                technician: '1',
+                description: 'Substituição de correia',
+                cost: 150.00,
+                status: 'completed',
+                notes: 'Correia nova instalada',
+                recordDate: '2024-08-12'
+            }
+        ];
+        
+        res.json(mockServices);
+    } catch (error) {
+        console.error('Erro ao buscar serviços:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
 });
 
-// Inicializar servidor
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📱 Acesse: http://localhost:${PORT}`);
-    console.log(`🔐 Sistema de autenticação funcionando`);
-    console.log(`👤 Admin: admin/admin`);
-    console.log(`🏪 Lojas: código da loja/123456`);
+// Rota para buscar máquinas
+app.get('/machines', authenticateToken, async (req, res) => {
+    try {
+        const { store } = req.query;
+        
+        // Aqui você pode adicionar a lógica para buscar do banco de dados
+        // Por enquanto, vamos retornar dados simulados
+        const mockMachines = [
+            {
+                id: 1,
+                type: 'Elevador 1',
+                provider: 'Martins',
+                location: 'Setor A',
+                serviceDate: '2024-08-12',
+                registrationDate: '2024-08-12'
+            }
+        ];
+        
+        res.json(mockMachines);
+    } catch (error) {
+        console.error('Erro ao buscar máquinas:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
 });
+
+// Rota de health check
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Middleware para rotas não encontradas
+app.use((req, res) => {
+    res.status(404).json({ error: 'Rota não encontrada' });
+});
+
+// Middleware de tratamento de erros
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+        error: 'Erro interno do servidor',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado'
+    });
+});
+
+module.exports.handler = serverless(app);

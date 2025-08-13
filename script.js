@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'https://gp-maquinas-backend.onrender.com/api';
+const API_BASE_URL = '/api';
 
 // User session
 let currentUser = null;
@@ -116,9 +116,19 @@ async function login(username, password) {
 
 async function verifyToken() {
     try {
-        const response = await apiRequest('/auth/verify');
-        return response.valid;
+        if (!userToken) return false;
+        
+        const response = await fetch('/api/auth/verify', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${userToken}`
+            }
+        });
+        
+        const data = await response.json();
+        return data.valid;
     } catch (error) {
+        console.error('Token verification failed:', error);
         return false;
     }
 }
@@ -747,16 +757,6 @@ function showMessage(message, type) {
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // Initialize database (now using API)
-        // The original code had 'initDatabase' and 'getAllMachines/getAllServices'
-        // which are no longer needed as data is fetched directly from the backend.
-        // We will keep the structure but adapt it to the new API.
-        
-        // Load data from database (now using API)
-        // The original code had 'machines' and 'services' arrays, which are no longer used.
-        // This function needs to be refactored to fetch data directly or update the global state.
-        // For now, we'll just display the fetched data.
-        
         // Check if user is already logged in
         const savedUser = localStorage.getItem('currentUser');
         const savedRole = localStorage.getItem('userRole');
@@ -765,11 +765,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (savedUser && savedRole && savedToken) {
             try {
                 // Attempt to verify token
+                userToken = savedToken;
                 const isValid = await verifyToken();
                 if (isValid) {
                     currentUser = JSON.parse(savedUser);
                     userRole = savedRole;
-                    userToken = savedToken;
                     showMainApp();
                 } else {
                     handleLogout(); // Token invalid, force logout
@@ -802,10 +802,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayStoreReport(this.value);
         });
         
-        console.log('Application initialized with database');
+        console.log('Application initialized with API authentication');
     } catch (error) {
-        console.error('Failed to initialize database:', error);
-        // Continue with localStorage fallback
+        console.error('Failed to initialize application:', error);
+        // Continue with login screen
         showLoginScreen();
     }
 });
@@ -847,36 +847,44 @@ function showMainApp() {
 }
 
 // Handle login
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
     
-    // Check admin login
-    if (username === 'admin' && password === 'admin') {
-        currentUser = 'Administrador';
-        userRole = 'admin';
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Salvar token e informações do usuário
+            userToken = data.token;
+            currentUser = data.user.fullName || data.user.username;
+            userRole = data.user.role;
+            
+            // Salvar no localStorage
+            localStorage.setItem('userToken', userToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         localStorage.setItem('userRole', userRole);
+            
+            // Mostrar aplicação principal
         showMainApp();
         showMessage('Login realizado com sucesso!', 'success');
-        return;
+        } else {
+            showMessage(data.error || 'Usuário ou senha incorretos!', 'error');
+        }
+    } catch (error) {
+        console.error('Erro no login:', error);
+        showMessage('Erro ao fazer login. Tente novamente.', 'error');
     }
-    
-    // Check store login
-    if (password === '123456' && storeNames[username]) {
-        currentUser = storeNames[username];
-        userRole = 'store';
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        localStorage.setItem('userRole', userRole);
-        showMainApp();
-        showMessage('Login realizado com sucesso!', 'success');
-        return;
-    }
-    
-    // Invalid login
-    showMessage('Usuário ou senha incorretos!', 'error');
 }
 
 // Handle logout
@@ -894,8 +902,10 @@ function handleLogout(e) {
     
     currentUser = null;
     userRole = null;
+    userToken = null;
     localStorage.removeItem('currentUser');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userToken');
     
     showLoginScreen();
     loginForm.reset();

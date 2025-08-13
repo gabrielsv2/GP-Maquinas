@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste da API - GP Máquinas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste da API - GP Máquinas</h1>
+    
+    <div class="test-section">
+        <h2>1. Teste de Login</h2>
+        <button onclick="testLogin('admin', 'admin')">Testar Admin</button>
+        <button onclick="testLogin('GPInterlagos', '123456')">Testar Loja</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Teste de Verificação de Token</h2>
+        <button onclick="testVerifyToken()">Verificar Token</button>
+        <div id="verify-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Teste de Registro de Serviço</h2>
+        <button onclick="testSaveService()">Salvar Serviço</button>
+        <div id="service-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Teste de Busca de Serviços</h2>
+        <button onclick="testGetServices()">Buscar Serviços</button>
+        <div id="services-result"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        async function testLogin(username, password) {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = 'Testando...';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentToken = data.token;
+                    resultDiv.innerHTML = `<div class="success">✅ Login bem-sucedido! Token: ${data.token.substring(0, 20)}...</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Login falhou: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        async function testVerifyToken() {
+            const resultDiv = document.getElementById('verify-result');
+            
+            if (!currentToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Faça login primeiro</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Verificando...';
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.valid) {
+                    resultDiv.innerHTML = `<div class="success">✅ Token válido! Usuário: ${data.user.username}</div>`;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ Token inválido</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        async function testSaveService() {
+            const resultDiv = document.getElementById('service-result');
+            
+            if (!currentToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Faça login primeiro</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Salvando...';
+            
+            const service = {
+                machineCode: 'TEST-001',
+                machineType: 'Elevador 1',
+                storeId: 'GPInterlagos',
+                location: 'Setor Teste',
+                serviceType: 'belt-replacement',
+                serviceDate: '2024-08-12',
+                technicianId: '1',
+                description: 'Serviço de teste',
+                cost: 100.00,
+                status: 'completed',
+                notes: 'Teste da API'
+            };
+            
+            try {
+                const response = await fetch('/api/services', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(service)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<div class="success">✅ Serviço salvo com sucesso!</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Falha ao salvar: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        async function testGetServices() {
+            const resultDiv = document.getElementById('services-result');
+            
+            if (!currentToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Faça login primeiro</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Buscando...';
+            
+            try {
+                const response = await fetch('/api/services?store=GPInterlagos', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    resultDiv.innerHTML = `<div class="success">✅ ${data.length} serviços encontrados</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Formato inválido: ${JSON.stringify(data)}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
