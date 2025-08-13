@@ -427,9 +427,9 @@ router.get('/', async (req, res) => {
         if (req.user.role === 'admin') {
             // Admin vê todos os relatórios
             query = `
-                SELECT r.*, s.store_name
+                SELECT r.*, s2.store_name
                 FROM reports r
-                LEFT JOIN stores s ON r.store_id = s.store_id
+                LEFT JOIN stores s2 ON r.store_id = s2.store_id
                 ORDER BY r.created_at DESC
                 LIMIT 50
             `;
@@ -437,9 +437,9 @@ router.get('/', async (req, res) => {
         } else {
             // Usuário de loja vê apenas relatórios de sua loja
             query = `
-                SELECT r.*, s.store_name
+                SELECT r.*, s2.store_name
                 FROM reports r
-                LEFT JOIN stores s ON r.store_id = s.store_id
+                LEFT JOIN stores s2 ON r.store_id = s2.store_id
                 WHERE r.store_id = $1
                 ORDER BY r.created_at DESC
                 LIMIT 50
@@ -479,17 +479,17 @@ router.get('/:id', async (req, res) => {
         let query, params;
         if (req.user.role === 'admin') {
             query = `
-                SELECT r.*, s.store_name
+                SELECT r.*, s2.store_name
                 FROM reports r
-                LEFT JOIN stores s ON r.store_id = s.store_id
+                LEFT JOIN stores s2 ON r.store_id = s2.store_id
                 WHERE r.report_id = $1
             `;
             params = [id];
         } else {
             query = `
-                SELECT r.*, s.store_name
+                SELECT r.*, s2.store_name
                 FROM reports r
-                LEFT JOIN stores s ON r.store_id = s.store_id
+                LEFT JOIN stores s2 ON r.store_id = s2.store_id
                 WHERE r.report_id = $1 AND r.store_id = $2
             `;
             params = [id, req.user.store];

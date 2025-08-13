@@ -49,22 +49,22 @@ router.get('/', async (req, res) => {
         if (req.user.role === 'admin') {
             // Admin vê todos os serviços
             query = `
-                SELECT s.*, st.service_name, t.technician_name, st.store_name
+                SELECT s.*, st.service_name, t.technician_name, s2.store_name
                 FROM services s
                 JOIN service_types st ON s.service_type_id = st.service_type_id
                 JOIN technicians t ON s.technician_id = t.technician_id
-                JOIN stores st ON s.store_id = st.store_id
+                JOIN stores s2 ON s.store_id = s2.store_id
                 ORDER BY s.service_date DESC
             `;
             params = [];
         } else {
             // Usuário de loja vê apenas seus serviços
             query = `
-                SELECT s.*, st.service_name, t.technician_name, st.store_name
+                SELECT s.*, st.service_name, t.technician_name, s2.store_name
                 FROM services s
                 JOIN service_types st ON s.service_type_id = st.service_type_id
                 JOIN technicians t ON s.technician_id = t.technician_id
-                JOIN stores st ON s.store_id = st.store_id
+                JOIN stores s2 ON s.store_id = s2.store_id
                 WHERE s.store_id = $1
                 ORDER BY s.service_date DESC
             `;
@@ -93,21 +93,21 @@ router.get('/:id', async (req, res) => {
         let query, params;
         if (req.user.role === 'admin') {
             query = `
-                SELECT s.*, st.service_name, t.technician_name, st.store_name
+                SELECT s.*, st.service_name, t.technician_name, s2.store_name
                 FROM services s
                 JOIN service_types st ON s.service_type_id = st.service_type_id
                 JOIN technicians t ON s.technician_id = t.technician_id
-                JOIN stores st ON s.store_id = st.store_id
+                JOIN stores s2 ON s.store_id = s2.store_id
                 WHERE s.service_id = $1
             `;
             params = [id];
         } else {
             query = `
-                SELECT s.*, st.service_name, t.technician_name, st.store_name
+                SELECT s.*, st.service_name, t.technician_name, s2.store_name
                 FROM services s
                 JOIN service_types st ON s.service_type_id = st.service_type_id
                 JOIN technicians t ON s.technician_id = t.technician_id
-                JOIN stores st ON s.store_id = st.store_id
+                JOIN stores s2 ON s.store_id = s2.store_id
                 WHERE s.service_id = $1 AND s.store_id = $2
             `;
             params = [id, req.user.store];
@@ -370,22 +370,22 @@ router.get('/machine/:machineCode', async (req, res) => {
         let query, params;
         if (req.user.role === 'admin') {
             query = `
-                SELECT s.*, st.service_name, t.technician_name, st.store_name
+                SELECT s.*, st.service_name, t.technician_name, s2.store_name
                 FROM services s
                 JOIN service_types st ON s.service_type_id = st.service_type_id
                 JOIN technicians t ON s.technician_id = t.technician_id
-                JOIN stores st ON s.store_id = st.store_id
+                JOIN stores s2 ON s.store_id = s2.store_id
                 WHERE s.machine_code = $1
                 ORDER BY s.service_date DESC
             `;
             params = [machineCode];
         } else {
             query = `
-                SELECT s.*, st.service_name, t.technician_name, st.store_name
+                SELECT s.*, st.service_name, t.technician_name, s2.store_name
                 FROM services s
                 JOIN service_types st ON s.service_type_id = st.service_type_id
                 JOIN technicians t ON s.technician_id = t.technician_id
-                JOIN stores st ON s.store_id = st.store_id
+                JOIN stores s2 ON s.store_id = s2.store_id
                 WHERE s.machine_code = $1 AND s.store_id = $2
                 ORDER BY s.service_date DESC
             `;
