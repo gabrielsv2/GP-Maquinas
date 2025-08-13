@@ -55,13 +55,26 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/reports', reportRoutes);
 
 // Rota de health check
-app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        environment: config.app.environment,
-        database: 'connected'
-    });
+app.get('/api/health', async (req, res) => {
+    try {
+        // Tentar conectar com o banco
+        await db.testConnection();
+        res.json({ 
+            status: 'OK', 
+            timestamp: new Date().toISOString(),
+            environment: config.app.environment,
+            database: 'connected'
+        });
+    } catch (error) {
+        console.error('❌ Erro na health check:', error);
+        res.json({ 
+            status: 'WARNING', 
+            timestamp: new Date().toISOString(),
+            environment: config.app.environment,
+            database: 'disconnected',
+            message: 'Servidor funcionando, mas banco não disponível'
+        });
+    }
 });
 
 // Rota principal - servir o index.html
@@ -93,18 +106,30 @@ const PORT = config.app.port;
 
 async function startServer() {
     try {
-        // Testar conexão com banco
-        await db.testConnection();
-        console.log('✅ Conexão com banco de dados estabelecida');
+        console.log('🚀 Iniciando servidor...');
+        console.log(`🌍 Ambiente: ${config.app.environment}`);
+        console.log(`🔧 Porta: ${PORT}`);
         
-        // Iniciar servidor
+        // Iniciar servidor primeiro
         app.listen(PORT, () => {
-            console.log(`🚀 Servidor rodando na porta ${PORT}`);
-            console.log(`🌍 Ambiente: ${config.app.environment}`);
+            console.log(`✅ Servidor rodando na porta ${PORT}`);
             console.log(`🔗 URL: http://localhost:${PORT}`);
+            console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
         });
+        
+        // Tentar conectar com banco em background
+        setTimeout(async () => {
+            try {
+                await db.testConnection();
+                console.log('✅ Conexão com banco de dados estabelecida');
+            } catch (error) {
+                console.error('⚠️ Aviso: Não foi possível conectar com o banco de dados:', error.message);
+                console.log('🔄 O servidor continuará funcionando e tentará reconectar...');
+            }
+        }, 2000);
+        
     } catch (error) {
-        console.error('❌ Erro ao iniciar servidor:', error);
+        console.error('❌ Erro crítico ao iniciar servidor:', error);
         process.exit(1);
     }
 }
