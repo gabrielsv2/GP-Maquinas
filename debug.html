@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin: 20px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { padding: 12px; width: 100%; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .message { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .debug { background: #f8f9fa; color: #495057; border: 1px solid #dee2e6; font-family: monospace; font-size: 14px; }
+        .console { background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug do Sistema de Login</h1>
+        
+        <div class="form-group">
+            <label for="username">Usuário:</label>
+            <input type="text" id="username" value="admin">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Senha:</label>
+            <input type="password" id="password" value="admin">
+        </div>
+        
+        <div>
+            <button onclick="testLogin()">🔑 Testar Login</button>
+            <button onclick="testAPI()">🌐 Testar API</button>
+            <button onclick="clearConsole()">🧹 Limpar Console</button>
+            <button onclick="checkEnvironment()">🔧 Verificar Ambiente</button>
+        </div>
+        
+        <div id="messages"></div>
+        
+        <div class="console" id="console">
+            <div>Console de Debug - Sistema GP Máquinas</div>
+            <div>=====================================</div>
+        </div>
+    </div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            consoleDiv.appendChild(logEntry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            
+            // Também log no console do navegador
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function showMessage(text, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            
+            // Remove mensagem após 5 segundos
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+        
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div>Console limpo</div>';
+        }
+        
+        function checkEnvironment() {
+            log('🔧 Verificando ambiente...');
+            log(`URL atual: ${window.location.href}`);
+            log(`User Agent: ${navigator.userAgent}`);
+            log(`Local Storage disponível: ${typeof(Storage) !== "undefined"}`);
+            log(`Fetch disponível: ${typeof(fetch) !== "undefined"}`);
+            log(`Console disponível: ${typeof(console) !== "undefined"}`);
+            
+            // Verificar se está no Netlify
+            if (window.location.hostname.includes('netlify')) {
+                log('✅ Detectado: Netlify');
+            } else if (window.location.hostname.includes('localhost')) {
+                log('🖥️ Detectado: Localhost');
+            } else {
+                log('🌐 Detectado: Outro domínio');
+            }
+        }
+        
+        async function testAPI() {
+            try {
+                log('🌐 Testando endpoint /api/health...');
+                
+                const response = await fetch('/api/health');
+                log(`Status da resposta: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ API Health: ${JSON.stringify(data)}`);
+                showMessage('API funcionando!', 'success');
+                
+            } catch (error) {
+                log(`❌ Erro na API: ${error.message}`);
+                showMessage(`Erro na API: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log(`🔑 Tentando login com: ${username} / ${password}`);
+            
+            try {
+                log('📡 Fazendo requisição para /api/auth/login...');
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                log(`📊 Status da resposta: ${response.status}`);
+                log(`📋 Headers da resposta: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`📨 Resposta recebida: ${JSON.stringify(data)}`);
+                
+                if (data.success) {
+                    log('✅ Login realizado com sucesso!');
+                    showMessage('Login realizado com sucesso!', 'success');
+                    
+                    // Testar verificação de token
+                    log('🔐 Testando verificação de token...');
+                    await testTokenVerification(data.token);
+                    
+                } else {
+                    log(`❌ Erro no login: ${data.error}`);
+                    showMessage(`Erro no login: ${data.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Erro: ${error.message}`);
+                showMessage(`Erro ao fazer login: ${error.message}`, 'error');
+                
+                // Log detalhado do erro
+                if (error.stack) {
+                    log(`Stack trace: ${error.stack}`);
+                }
+            }
+        }
+        
+        async function testTokenVerification(token) {
+            try {
+                log('🔐 Verificando token...');
+                
+                const response = await fetch('/api/auth/verify', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                log(`Status da verificação: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Token válido: ${JSON.stringify(data)}`);
+                
+            } catch (error) {
+                log(`❌ Erro na verificação: ${error.message}`);
+            }
+        }
+        
+        // Teste automático ao carregar a página
+        window.addEventListener('load', () => {
+            log('🚀 Página carregada. Sistema de debug ativo.');
+            checkEnvironment();
+        });
+        
+        // Capturar erros globais
+        window.addEventListener('error', (event) => {
+            log(`💥 Erro global: ${event.error.message} em ${event.filename}:${event.lineno}`);
+        });
+        
+        // Capturar promessas rejeitadas
+        window.addEventListener('unhandledrejection', (event) => {
+            log(`💥 Promessa rejeitada: ${event.reason}`);
+        });
+    </script>
+</body>
+</html>

@@ -116,7 +116,12 @@ async function login(username, password) {
 
 async function verifyToken() {
     try {
-        if (!userToken) return false;
+        if (!userToken) {
+            console.log('❌ Nenhum token para verificar');
+            return false;
+        }
+        
+        console.log('🔐 Verificando token:', userToken.substring(0, 20) + '...');
         
         const response = await fetch('/api/auth/verify', {
             method: 'GET',
@@ -125,10 +130,18 @@ async function verifyToken() {
             }
         });
         
+        console.log('📊 Status da verificação:', response.status);
+        
+        if (!response.ok) {
+            console.log('❌ Resposta não OK:', response.status);
+            return false;
+        }
+        
         const data = await response.json();
+        console.log('📨 Dados da verificação:', data);
         return data.valid;
     } catch (error) {
-        console.error('Token verification failed:', error);
+        console.error('❌ Falha na verificação do token:', error);
         return false;
     }
 }
@@ -756,38 +769,49 @@ function showMessage(message, type) {
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 DOM carregado, inicializando aplicação...');
+    
     try {
         // Check if user is already logged in
         const savedUser = localStorage.getItem('currentUser');
         const savedRole = localStorage.getItem('userRole');
         const savedToken = localStorage.getItem('userToken');
 
+        console.log('📋 Dados salvos:', { savedUser, savedRole, savedToken: savedToken ? 'SIM' : 'NÃO' });
+
         if (savedUser && savedRole && savedToken) {
             try {
                 // Attempt to verify token
                 userToken = savedToken;
+                console.log('🔐 Verificando token salvo...');
                 const isValid = await verifyToken();
                 if (isValid) {
                     currentUser = JSON.parse(savedUser);
                     userRole = savedRole;
+                    console.log('✅ Token válido, mostrando aplicação principal');
                     showMainApp();
                 } else {
+                    console.log('❌ Token inválido, fazendo logout');
                     handleLogout(); // Token invalid, force logout
                 }
             } catch (error) {
-                console.error('Failed to verify token:', error);
+                console.error('❌ Falha na verificação do token:', error);
                 handleLogout(); // Token verification failed, force logout
             }
         } else {
+            console.log('👤 Nenhum usuário logado, mostrando tela de login');
             showLoginScreen();
         }
         
         // Add event listeners
+        console.log('🔗 Adicionando event listeners...');
         loginForm.addEventListener('submit', handleLogin);
         logoutBtn.addEventListener('submit', handleLogout);
         logoutBtn.addEventListener('click', handleLogout);
         
+        console.log('🧭 Inicializando navegação...');
         initializeNavigation();
+        console.log('📊 Inicializando serviços...');
         displayServices();
         
         // Add event listener for store report selection
@@ -802,9 +826,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayStoreReport(this.value);
         });
         
-        console.log('Application initialized with API authentication');
+        console.log('✅ Aplicação inicializada com autenticação via API');
     } catch (error) {
-        console.error('Failed to initialize application:', error);
+        console.error('💥 Falha na inicialização da aplicação:', error);
         // Continue with login screen
         showLoginScreen();
     }
@@ -853,7 +877,11 @@ async function handleLogin(e) {
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
     
+    console.log('Tentando login com:', username, password);
+    
     try {
+        console.log('Fazendo requisição para /api/auth/login...');
+        
         const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
@@ -862,7 +890,14 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
         
+        console.log('Status da resposta:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Resposta recebida:', data);
         
         if (data.success) {
             // Salvar token e informações do usuário
@@ -872,18 +907,18 @@ async function handleLogin(e) {
             
             // Salvar no localStorage
             localStorage.setItem('userToken', userToken);
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        localStorage.setItem('userRole', userRole);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('userRole', userRole);
             
             // Mostrar aplicação principal
-        showMainApp();
-        showMessage('Login realizado com sucesso!', 'success');
+            showMainApp();
+            showMessage('Login realizado com sucesso!', 'success');
         } else {
             showMessage(data.error || 'Usuário ou senha incorretos!', 'error');
         }
     } catch (error) {
         console.error('Erro no login:', error);
-        showMessage('Erro ao fazer login. Tente novamente.', 'error');
+        showMessage(`Erro ao fazer login: ${error.message}`, 'error');
     }
 }
 

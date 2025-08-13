@@ -6,6 +6,11 @@ const { Pool } = require('pg');
 
 const app = express();
 
+console.log('🚀 Iniciando Netlify Function para GP Máquinas...');
+console.log('🌐 CORS Origin:', process.env.CORS_ORIGIN || 'https://gp-services.netlify.app');
+console.log('🔧 NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('🗄️ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurado' : 'NÃO configurado');
+
 // Middleware
 app.use(cors({
     origin: process.env.CORS_ORIGIN || 'https://gp-services.netlify.app',
@@ -52,29 +57,43 @@ const stores = [
 
 // Middleware para validar token JWT
 const authenticateToken = (req, res, next) => {
+    console.log('🔍 Verificando autenticação...');
+    
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
+    console.log('📋 Header Authorization:', authHeader ? 'Presente' : 'Ausente');
+    console.log('🔑 Token extraído:', token ? token.substring(0, 20) + '...' : 'NÃO');
+
     if (!token) {
+        console.log('❌ Nenhum token fornecido');
         return res.status(401).json({ error: 'Token de acesso necessário' });
     }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log('✅ Token válido, usuário:', decoded);
         req.user = decoded;
         next();
     } catch (error) {
+        console.log('❌ Token inválido:', error.message);
         return res.status(403).json({ error: 'Token inválido ou expirado' });
     }
 };
 
 // Rota de login
 app.post('/auth/login', async (req, res) => {
+    console.log('🔑 Tentativa de login recebida:', { username: req.body.username, password: req.body.password ? '***' : 'NÃO' });
+    
     try {
         const { username, password } = req.body;
 
+        console.log('📋 Dados recebidos:', { username, password: password ? '***' : 'NÃO' });
+
         // Verificar se é admin
         if (username === 'admin' && password === 'admin') {
+            console.log('✅ Login de admin válido');
+            
             const token = jwt.sign(
                 { 
                     id: 0, 
@@ -85,6 +104,8 @@ app.post('/auth/login', async (req, res) => {
                 JWT_SECRET,
                 { expiresIn: '24h' }
             );
+
+            console.log('🔐 Token gerado para admin');
 
             return res.json({
                 success: true,
@@ -101,8 +122,12 @@ app.post('/auth/login', async (req, res) => {
 
         // Verificar se é usuário de loja
         if (password === '123456') {
+            console.log('🏪 Tentativa de login de loja:', username);
+            
             const store = stores.find(s => s.store_id === username);
             if (store) {
+                console.log('✅ Loja encontrada:', store.store_name);
+                
                 const token = jwt.sign(
                     { 
                         id: store.store_id, 
@@ -113,6 +138,8 @@ app.post('/auth/login', async (req, res) => {
                     JWT_SECRET,
                     { expiresIn: '24h' }
                 );
+
+                console.log('🔐 Token gerado para loja:', store.store_id);
 
                 return res.json({
                     success: true,
@@ -125,10 +152,13 @@ app.post('/auth/login', async (req, res) => {
                         store: store.store_id
                     }
                 });
+            } else {
+                console.log('❌ Loja não encontrada:', username);
             }
         }
 
         // Login inválido
+        console.log('❌ Login inválido para:', username);
         return res.status(401).json({ 
             error: 'Usuário ou senha incorretos' 
         });
@@ -143,6 +173,7 @@ app.post('/auth/login', async (req, res) => {
 
 // Verificar token
 app.get('/auth/verify', authenticateToken, (req, res) => {
+    console.log('🔐 Verificação de token solicitada para usuário:', req.user);
     res.json({
         valid: true,
         user: req.user
@@ -243,6 +274,7 @@ app.get('/health', (req, res) => {
 
 // Middleware para rotas não encontradas
 app.use((req, res) => {
+    console.log('❌ Rota não encontrada:', req.method, req.url);
     res.status(404).json({ error: 'Rota não encontrada' });
 });
 
