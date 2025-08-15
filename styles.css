@@ -455,6 +455,37 @@ textarea {
     display: block;
 }
 
+.btn-print {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-print:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    background: linear-gradient(135deg, #218838, #1e7e34);
+}
+
+.btn-print:active {
+    transform: translateY(0);
+}
+
+.print-icon {
+    font-size: 1.2rem;
+}
+
 .store-report {
     background: #f8f9fa;
     border-radius: 15px;
@@ -870,7 +901,29 @@ textarea {
     margin-bottom: 20px;
     border: 1px solid #f5c6cb;
     animation: slideIn 0.5s ease-out;
-} 
+}
+
+/* Warning message styling */
+.warning-message {
+    background: #fff3cd;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #ffeaa7;
+    animation: slideIn 0.5s ease-out;
+}
+
+/* Info message styling */
+.info-message {
+    background: #d1ecf1;
+    color: #0c5460;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #bee5eb;
+    animation: slideIn 0.5s ease-out;
+}
 
 /* Supplier Boxes Styles */
 .supplier-boxes {

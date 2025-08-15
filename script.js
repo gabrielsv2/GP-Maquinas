@@ -497,6 +497,12 @@ function getStatusDisplayName(status) {
 async function displayStoreReport(storeCode) {
     if (!storeCode) {
         storeReport.innerHTML = '<p class="no-records">Selecione uma loja para visualizar o relatório.</p>';
+        
+        // Hide print button when no store is selected
+        const printReportBtn = document.getElementById('printReportBtn');
+        if (printReportBtn) {
+            printReportBtn.style.display = 'none';
+        }
         return;
     }
     
@@ -721,9 +727,21 @@ async function displayStoreReport(storeCode) {
         }
         
         storeReport.innerHTML = reportHTML;
+        
+        // Show print button when report is loaded successfully
+        const printReportBtn = document.getElementById('printReportBtn');
+        if (printReportBtn) {
+            printReportBtn.style.display = 'inline-flex';
+        }
     } catch (error) {
         console.error('Error loading store report:', error);
         storeReport.innerHTML = '<p class="no-records">Erro ao carregar relatório. Tente novamente.</p>';
+        
+        // Hide print button on error
+        const printReportBtn = document.getElementById('printReportBtn');
+        if (printReportBtn) {
+            printReportBtn.style.display = 'none';
+        }
     }
 }
 
@@ -825,10 +843,28 @@ function displayServices() {
         });
 }
 
-// Show success/error messages
+// Show success/error/warning/info messages
 function showMessage(message, type) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+    
+    // Set appropriate CSS class based on message type
+    switch(type) {
+        case 'success':
+            messageDiv.className = 'success-message';
+            break;
+        case 'error':
+            messageDiv.className = 'error-message';
+            break;
+        case 'warning':
+            messageDiv.className = 'warning-message';
+            break;
+        case 'info':
+            messageDiv.className = 'info-message';
+            break;
+        default:
+            messageDiv.className = 'info-message';
+    }
+    
     messageDiv.textContent = message;
     
     // Insert message at the top of the main container
@@ -1020,12 +1056,172 @@ function handleLogout(e) {
     currentUser = null;
     userRole = null;
     userToken = null;
+    localStorage.removeItem('userToken');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('userRole');
-    localStorage.removeItem('userToken');
     
     showLoginScreen();
     loginForm.reset();
 }
+
+// Print report function
+function printReport() {
+    const storeCode = storeReportSelect.value;
+    if (!storeCode) {
+        showMessage('Selecione uma loja para imprimir o relatório.', 'warning');
+        return;
+    }
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    const storeName = getStoreDisplayName(storeCode);
+    
+    // Get the current report content
+    const reportContent = storeReport.innerHTML;
+    
+    // Create print-friendly HTML
+    const printHTML = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Relatório - ${storeName}</title>
+            <style>
+                @media print {
+                    body { margin: 0; padding: 20px; }
+                    .no-print { display: none !important; }
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .print-header {
+                    text-align: center;
+                    border-bottom: 3px solid #dc2626;
+                    padding-bottom: 20px;
+                    margin-bottom: 30px;
+                }
+                .print-header h1 {
+                    color: #dc2626;
+                    margin: 0 0 10px 0;
+                    font-size: 2rem;
+                }
+                .print-header p {
+                    margin: 0;
+                    color: #666;
+                    font-size: 1.1rem;
+                }
+                .print-date {
+                    text-align: right;
+                    color: #666;
+                    margin-bottom: 20px;
+                    font-size: 0.9rem;
+                }
+                .supplier-box, .mechanic-section {
+                    page-break-inside: avoid;
+                    margin-bottom: 30px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 20px;
+                }
+                .supplier-header, .mechanic-header {
+                    background: #f8f9fa;
+                    padding: 15px;
+                    margin: -20px -20px 20px -20px;
+                    border-radius: 8px 8px 0 0;
+                    border-bottom: 1px solid #ddd;
+                }
+                .supplier-header h5, .mechanic-header h5 {
+                    margin: 0;
+                    color: #2c3e50;
+                    font-size: 1.2rem;
+                }
+                .stat-item {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                    padding: 5px 0;
+                }
+                .stat-label {
+                    font-weight: bold;
+                    color: #2c3e50;
+                }
+                .stat-value {
+                    color: #dc2626;
+                    font-weight: bold;
+                }
+                .machine-type-item, .service-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #eee;
+                }
+                .machine-type-item:last-child, .service-item:last-child {
+                    border-bottom: none;
+                }
+                .report-item {
+                    margin-bottom: 15px;
+                    padding: 15px;
+                    border: 1px solid #eee;
+                    border-radius: 5px;
+                }
+                .report-item-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 10px;
+                    font-weight: bold;
+                }
+                .report-item-details {
+                    line-height: 1.5;
+                }
+                h4 {
+                    color: #2c3e50;
+                    border-bottom: 2px solid #dc2626;
+                    padding-bottom: 8px;
+                    margin: 25px 0 15px 0;
+                }
+                h6 {
+                    color: #2c3e50;
+                    margin: 15px 0 10px 0;
+                }
+                @media print {
+                    .btn-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-header">
+                <h1>GP Máquinas e Serviços</h1>
+                <p>Relatório de Serviços - ${storeName}</p>
+            </div>
+            <div class="print-date">
+                Data de impressão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
+            </div>
+            ${reportContent}
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = function() {
+        printWindow.print();
+        printWindow.close();
+    };
+}
+
+// Add event listener for print button
+document.addEventListener('DOMContentLoaded', function() {
+    const printReportBtn = document.getElementById('printReportBtn');
+    if (printReportBtn) {
+        printReportBtn.addEventListener('click', printReport);
+    }
+});
 
  
