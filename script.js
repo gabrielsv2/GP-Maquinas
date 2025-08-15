@@ -153,27 +153,9 @@ async function verifyToken() {
         }
         
         console.log('🔐 Verificando token:', userToken.substring(0, 20) + '...');
-        
-        // Use local proxy in development, direct API in production
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
-        const response = await fetch(`${baseUrl}/api/auth/verify`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${userToken}`
-            }
-        });
-        
-        console.log('📊 Status da verificação:', response.status);
-        
-        if (!response.ok) {
-            console.log('❌ Resposta não OK:', response.status);
-            return false;
-        }
-        
-        const data = await response.json();
+        const data = await apiRequest('/auth/verify', { method: 'GET' });
         console.log('📨 Dados da verificação:', data);
-        return data.valid;
+        return data && data.valid === true;
     } catch (error) {
         console.error('❌ Falha na verificação do token:', error);
         return false;
@@ -248,27 +230,9 @@ async function checkAuthStatus() {
     }
     
     try {
-        // Use local proxy in development, direct API in production
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
-        const response = await fetch(`${baseUrl}/api/auth/verify`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${userToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        console.log('🔐 Auth check status:', response.status);
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Auth check successful:', data);
-            return data.valid === true;
-        } else {
-            console.log('❌ Auth check failed:', response.status);
-            return false;
-        }
+        const data = await apiRequest('/auth/verify', { method: 'GET' });
+        console.log('🔐 Auth check data:', data);
+        return data && data.valid === true;
     } catch (error) {
         console.error('❌ Auth check error:', error);
         return false;
@@ -565,235 +529,99 @@ async function displayStoreReport(storeCode) {
     }
     
     try {
-        // Note: /api/machines endpoint doesn't exist in the backend
-        // We'll use only services for now
-        const storeServices = await apiRequest(`/services?store=${storeCode}`);
+        // Definir período padrão (últimos 12 meses)
+        const today = new Date();
+        const oneYearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+        const toISO = (d) => d.toISOString().split('T')[0];
         
-        // For now, we'll create a mock machines array based on services
-        const storeMachines = storeServices.map(service => ({
-            id: service.service_id,
-            type: service.machine_type,
-            provider: service.technician_name,
-            mechanicName: service.technician_name,
-            location: service.location,
-            registrationDate: service.record_date,
-            serviceDate: service.service_date
-        }));
-        
-        // Group machines by provider
-        const machinesByProvider = {};
-        storeMachines.forEach(machine => {
-            const providerName = machine.provider || machine.mechanicName;
-            if (!machinesByProvider[providerName]) {
-                machinesByProvider[providerName] = [];
-            }
-            machinesByProvider[providerName].push(machine);
+        const response = await apiRequest('/reports/store', {
+            method: 'POST',
+            body: JSON.stringify({
+                storeId: storeCode,
+                startDate: toISO(oneYearAgo),
+                endDate: toISO(today)
+            })
         });
         
-        // Group services by technician
-        const servicesByTechnician = {};
-        storeServices.forEach(service => {
-            if (!servicesByTechnician[service.technician]) {
-                servicesByTechnician[service.technician] = [];
-            }
-            servicesByTechnician[service.technician].push(service);
-        });
+        const reportId = response.reportId;
+        const report = response.report;
         
+        // Montar HTML do relatório a partir do objeto salvo
         let reportHTML = `
             <div class="store-report-header">
-                <h3>Relatório da Loja: ${getStoreDisplayName(storeCode)}</h3>
+                <h3>Relatório da Loja: ${report.storeInfo.storeName}</h3>
                 <div class="report-summary">
-                    <div class="summary-item">
-                        <strong>Total de Máquinas:</strong> ${storeMachines.length}
-                    </div>
-                    <div class="summary-item">
-                        <strong>Total de Serviços:</strong> ${storeServices.length}
-                    </div>
-                    <div class="summary-item">
-                        <strong>Custo Total dos Serviços:</strong> R$ ${storeServices.reduce((sum, service) => sum + service.cost, 0).toFixed(2)}
-                    </div>
-                    <div class="summary-item">
-                        <strong>Fornecedores Ativos:</strong> ${Object.keys(machinesByProvider).length}
-                    </div>
+                    <div class="summary-item"><strong>Período:</strong> ${report.period.startDate} a ${report.period.endDate}</div>
+                    <div class="summary-item"><strong>Total de Serviços:</strong> ${report.summary.totalServices}</div>
+                    <div class="summary-item"><strong>Custo Total:</strong> R$ ${Number(report.summary.totalCost).toFixed(2)}</div>
+                    <div class="summary-item"><strong>Média por Serviço:</strong> R$ ${Number(report.summary.averageCost).toFixed(2)}</div>
+                    <div class="summary-item"><strong>Máquinas Únicas:</strong> ${report.summary.uniqueMachines}</div>
+                    <div class="summary-item"><strong>Técnicos Únicos:</strong> ${report.summary.uniqueTechnicians}</div>
+                </div>
+                <div class="summary-item" style="margin-top:8px;">
+                    <strong>Relatório salvo:</strong> #${reportId}
                 </div>
             </div>
         `;
         
-        // Display supplier boxes with values
-        if (Object.keys(machinesByProvider).length > 0) {
-            reportHTML += '<h4>Fornecedores e Suas Estatísticas:</h4>';
-            reportHTML += '<div class="supplier-boxes">';
-            
-            Object.keys(machinesByProvider).forEach(providerName => {
-                const providerMachines = machinesByProvider[providerName];
-                const totalMachines = providerMachines.length;
-                
-                // Calculate services for this provider's machines
-                const providerMachineIds = providerMachines.map(m => m.id);
-                const providerServices = storeServices.filter(service => 
-                    providerMachineIds.includes(parseInt(service.machineId))
-                );
-                const totalServices = providerServices.length;
-                const totalCost = providerServices.reduce((sum, service) => sum + service.cost, 0);
-                
-                // Count machines by type for this provider
-                const machineTypes = {};
-                providerMachines.forEach(machine => {
-                    const type = getMachineTypeDisplayName(machine.type);
-                    machineTypes[type] = (machineTypes[type] || 0) + 1;
-                });
-                
+        // Quebra por status
+        const statusEntries = Object.entries(report.statusBreakdown || {});
+        if (statusEntries.length > 0) {
+            reportHTML += '<h4>Serviços por Status</h4><div class="supplier-boxes">';
+            statusEntries.forEach(([status, count]) => {
                 reportHTML += `
                     <div class="supplier-box">
-                        <div class="supplier-header">
-                            <h5>Fornecedor: ${providerName}</h5>
-                        </div>
+                        <div class="supplier-header"><h5>${getStatusDisplayName(status)}</h5></div>
                         <div class="supplier-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Total de Máquinas:</span>
-                                <span class="stat-value">${totalMachines}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Total de Serviços:</span>
-                                <span class="stat-value">${totalServices}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Custo Total:</span>
-                                <span class="stat-value">R$ ${totalCost.toFixed(2)}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Tipos de Máquinas:</span>
-                                <span class="stat-value">${Object.keys(machineTypes).length}</span>
-                            </div>
-                        </div>
-                        <div class="supplier-machines">
-                            <h6>Máquinas por Tipo:</h6>
-                            <div class="machine-type-list">
-                `;
-                
-                Object.keys(machineTypes).forEach(type => {
-                    reportHTML += `
-                        <div class="machine-type-item">
-                            <span class="type-name">${type}</span>
-                            <span class="type-count">${machineTypes[type]}</span>
-                        </div>
-                    `;
-                });
-                
-                reportHTML += `
-                            </div>
-                        </div>
-                        <div class="supplier-services">
-                            <h6>Últimos Serviços:</h6>
-                            <div class="service-list">
-                `;
-                
-                // Show last 3 services for this provider
-                const recentServices = providerServices.slice(-3);
-                if (recentServices.length > 0) {
-                    recentServices.forEach(service => {
-                        reportHTML += `
-                            <div class="service-item">
-                                <span class="service-type">${getServiceTypeDisplayName(service.serviceType)}</span>
-                                <span class="service-cost">R$ ${service.cost.toFixed(2)}</span>
-                                <span class="service-date">${service.serviceDate}</span>
-                            </div>
-                        `;
-                    });
-                } else {
-                    reportHTML += '<p class="no-services">Nenhum serviço registrado</p>';
-                }
-                
-                reportHTML += `
-                            </div>
+                            <div class="stat-item"><span class="stat-label">Quantidade:</span><span class="stat-value">${count}</span></div>
                         </div>
                     </div>
                 `;
             });
-            
             reportHTML += '</div>';
         }
         
-        // Display detailed machines grouped by provider
-        if (Object.keys(machinesByProvider).length > 0) {
-            reportHTML += '<h4>Detalhamento por Fornecedor:</h4>';
-            
-            Object.keys(machinesByProvider).forEach(providerName => {
-                const providerMachines = machinesByProvider[providerName];
-                const totalMachines = providerMachines.length;
-                
+        // Quebra por tipo de serviço
+        const typeEntries = Object.entries(report.serviceTypeBreakdown || {});
+        if (typeEntries.length > 0) {
+            reportHTML += '<h4>Serviços por Tipo</h4><div class="supplier-boxes">';
+            typeEntries.forEach(([type, count]) => {
                 reportHTML += `
-                    <div class="mechanic-section">
-                        <div class="mechanic-header">
-                            <h5>Fornecedor: ${providerName}</h5>
-                            <span class="mechanic-count">Total de Máquinas: ${totalMachines}</span>
+                    <div class="supplier-box">
+                        <div class="supplier-header"><h5>${getServiceTypeDisplayName(type)}</h5></div>
+                        <div class="supplier-stats">
+                            <div class="stat-item"><span class="stat-label">Quantidade:</span><span class="stat-value">${count}</span></div>
                         </div>
-                        <div class="mechanic-machines">
+                    </div>
                 `;
-                
-                providerMachines.forEach(machine => {
-                    reportHTML += `
-                        <div class="report-item machine-report">
-                            <div class="report-item-header">
-                                <span class="report-item-title">${getMachineTypeDisplayName(machine.type)}</span>
-                                <span class="report-item-date">Registrado: ${machine.registrationDate}</span>
-                            </div>
-                            <div class="report-item-details">
-                                <strong>Tipo:</strong> ${getMachineTypeDisplayName(machine.type)}<br>
-                                <strong>Fornecedor:</strong> ${machine.provider || machine.mechanicName}<br>
-                                <strong>Localização:</strong> ${machine.location}<br>
-                                <strong>Data do Serviço:</strong> ${machine.serviceDate}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                reportHTML += '</div></div>';
             });
+            reportHTML += '</div>';
         }
         
-        // Display services grouped by technician
-        if (Object.keys(servicesByTechnician).length > 0) {
-            reportHTML += '<h4>Serviços por Técnico:</h4>';
-            
-            Object.keys(servicesByTechnician).forEach(technicianName => {
-                const technicianServices = servicesByTechnician[technicianName];
-                const totalServices = technicianServices.length;
-                const totalCost = technicianServices.reduce((sum, service) => sum + service.cost, 0);
-                
+        // Últimos serviços
+        if (Array.isArray(report.services) && report.services.length > 0) {
+            reportHTML += '<h4>Últimos Serviços</h4><div class="mechanic-services">';
+            report.services.slice(0, 10).forEach(svc => {
+                const cost = parseFloat(svc.cost || 0);
                 reportHTML += `
-                    <div class="mechanic-section">
-                        <div class="mechanic-header">
-                            <h5>Técnico: ${technicianName}</h5>
-                            <span class="mechanic-count">Total de Serviços: ${totalServices} | Custo Total: R$ ${totalCost.toFixed(2)}</span>
+                    <div class="report-item service-report">
+                        <div class="report-item-header">
+                            <span class="report-item-title">${svc.machineCode} - ${svc.machineType}</span>
+                            <span class="report-item-date">Serviço: ${svc.serviceDate}</span>
                         </div>
-                        <div class="mechanic-services">
+                        <div class="report-item-details">
+                            <strong>Tipo de Serviço:</strong> ${svc.serviceType}<br>
+                            <strong>Técnico:</strong> ${svc.technician}<br>
+                            <strong>Descrição:</strong> ${svc.description || ''}<br>
+                            <strong>Custo:</strong> R$ ${cost.toFixed(2)}<br>
+                            <strong>Status:</strong> ${getStatusDisplayName(svc.status || 'completed')}
+                        </div>
+                    </div>
                 `;
-                
-                technicianServices.forEach(service => {
-                    reportHTML += `
-                        <div class="report-item service-report">
-                            <div class="report-item-header">
-                                <span class="report-item-title">${service.machineName}</span>
-                                <span class="report-item-date">Serviço: ${service.serviceDate}</span>
-                            </div>
-                            <div class="report-item-details">
-                                <strong>Tipo de Serviço:</strong> ${getServiceTypeDisplayName(service.serviceType)}<br>
-                                <strong>Técnico:</strong> ${service.technician}<br>
-                                <strong>Descrição:</strong> ${service.description}<br>
-                                <strong>Custo:</strong> R$ ${service.cost.toFixed(2)}<br>
-                                <strong>Registrado em:</strong> ${service.recordDate}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                reportHTML += '</div></div>';
             });
-        }
-        
-        if (storeMachines.length === 0 && storeServices.length === 0) {
-            reportHTML += '<p class="no-records">Nenhuma máquina ou serviço registrado para esta loja.</p>';
+            reportHTML += '</div>';
+        } else {
+            reportHTML += '<p class="no-records">Nenhum serviço encontrado no período selecionado.</p>';
         }
         
         storeReport.innerHTML = reportHTML;
@@ -896,50 +724,64 @@ async function displayServices() {
         
         // Fetch services from the backend
         const data = await apiRequest('/services');
-            if (data && data.length > 0) {
-                data.forEach(service => {
-                    const serviceDiv = document.createElement('div');
-                    serviceDiv.className = 'record-item service-record';
-                    serviceDiv.innerHTML = `
-                        <div class="record-header">
-                            <span class="record-title">${service.machineCode} - ${service.machineType}</span>
-                            <span class="record-date">Data do Serviço: ${service.serviceDate}</span>
-                        </div>
-                        <div class="record-details">
-                            <strong>Código da Máquina:</strong> ${service.machineCode}<br>
-                            <strong>Tipo de Máquina:</strong> ${service.machineType}<br>
-                            <strong>Loja:</strong> ${getStoreDisplayName(service.store)}<br>
-                            <strong>Localização:</strong> ${service.location}<br>
-                            <strong>Tipo de Serviço:</strong> ${getServiceTypeDisplayName(service.serviceType)}<br>
-                            <strong>Técnico:</strong> ${getTechnicianName(service.technician)}<br>
-                            <strong>Descrição:</strong> ${service.description}<br>
-                            <strong>Custo:</strong> R$ ${service.cost.toFixed(2)}<br>
-                            <strong>Status:</strong> ${getStatusDisplayName(service.status)}<br>
+        const services = Array.isArray(data) ? data : (data && data.services) ? data.services : [];
+        
+        if (services.length > 0) {
+            servicesList.innerHTML = '';
+            services.forEach(service => {
+                const machineCode = service.machineCode || service.machine_code || '';
+                const machineType = service.machineType || service.machine_type || '';
+                const storeName = service.store_name || getStoreDisplayName(service.store_id || service.store || '');
+                const serviceDate = service.serviceDate || service.service_date || '';
+                const serviceType = getServiceTypeDisplayName(service.serviceType || service.service_name || service.service_type_id || 'repair');
+                const technician = service.technician || service.technician_name || getTechnicianName(service.technician_id || '1');
+                const description = service.description || '';
+                const cost = parseFloat(service.cost || 0);
+                const status = getStatusDisplayName(service.status || 'completed');
+                const recordDate = service.recordDate || service.record_date || '';
 
-                            <strong>Registrado em:</strong> ${service.recordDate}
-                            ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
-                        </div>
-                    `;
-                    servicesList.appendChild(serviceDiv);
-                });
-            } else {
-                servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
-            }
-        } catch (error) {
-            console.error('Error loading services:', error);
-            
-            let errorMessage = 'Erro ao carregar serviços. Tente novamente.';
-            
-            if (error.message.includes('Sessão expirada')) {
-                errorMessage = 'Sessão expirada. Faça login novamente.';
-            } else if (error.message.includes('Invalid content type')) {
-                errorMessage = 'Erro de comunicação com o servidor. Verifique sua conexão.';
-            } else if (error.message.includes('HTTP error')) {
-                errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
-            }
-            
-            servicesList.innerHTML = `<p class="no-records">${errorMessage}</p>`;
+                const serviceDiv = document.createElement('div');
+                serviceDiv.className = 'record-item service-record';
+                serviceDiv.innerHTML = `
+                    <div class="record-header">
+                        <span class="record-title">${machineCode} - ${machineType}</span>
+                        <span class="record-date">Data do Serviço: ${serviceDate}</span>
+                    </div>
+                    <div class="record-details">
+                        <strong>Código da Máquina:</strong> ${machineCode}<br>
+                        <strong>Tipo de Máquina:</strong> ${machineType}<br>
+                        <strong>Loja:</strong> ${storeName}<br>
+                        <strong>Localização:</strong> ${service.location || ''}<br>
+                        <strong>Tipo de Serviço:</strong> ${serviceType}<br>
+                        <strong>Técnico:</strong> ${technician}<br>
+                        <strong>Descrição:</strong> ${description}<br>
+                        <strong>Custo:</strong> R$ ${cost.toFixed(2)}<br>
+                        <strong>Status:</strong> ${status}<br>
+
+                        <strong>Registrado em:</strong> ${recordDate}
+                        ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
+                    </div>
+                `;
+                servicesList.appendChild(serviceDiv);
+            });
+        } else {
+            servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
         }
+    } catch (error) {
+        console.error('Error loading services:', error);
+        
+        let errorMessage = 'Erro ao carregar serviços. Tente novamente.';
+        
+        if (error.message.includes('Sessão expirada')) {
+            errorMessage = 'Sessão expirada. Faça login novamente.';
+        } else if (error.message.includes('Invalid content type')) {
+            errorMessage = 'Erro de comunicação com o servidor. Verifique sua conexão.';
+        } else if (error.message.includes('HTTP error')) {
+            errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+        }
+        
+        servicesList.innerHTML = `<p class="no-records">${errorMessage}</p>`;
+    }
 }
 
 // Show success/error messages
@@ -1114,24 +956,13 @@ async function handleLogin(e) {
     try {
         console.log('Fazendo requisição para /api/auth/login...');
         
-        // Use local proxy in development, direct API in production
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const baseUrl = isLocal ? window.location.origin : 'https://gp-maquinas-backend.onrender.com';
-        const response = await fetch(`${baseUrl}/api/auth/login`, {
+        const data = await apiRequest('/auth/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
         
-        console.log('Status da resposta:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        console.log('Status do login: sucesso');
         console.log('Resposta recebida:', data);
         
         if (data.success) {
