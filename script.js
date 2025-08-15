@@ -82,14 +82,28 @@ function getServiceNumber(storeCode, serviceId) {
         serviceNumbers[storeCode] = 0;
     }
     
-    // Use serviceId to generate a consistent number (simple hash)
-    const hash = serviceId.toString().split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-    }, 0);
+    // Check if serviceId is valid
+    if (!serviceId || serviceId === null || serviceId === undefined) {
+        // Generate a fallback number
+        serviceNumbers[storeCode]++;
+        return serviceNumbers[storeCode].toString().padStart(5, '0');
+    }
     
-    const serviceNum = Math.abs(hash) % 100000;
-    return serviceNum.toString().padStart(5, '0');
+    // Use serviceId to generate a consistent number (simple hash)
+    try {
+        const hash = serviceId.toString().split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0);
+        
+        const serviceNum = Math.abs(hash) % 100000;
+        return serviceNum.toString().padStart(5, '0');
+    } catch (error) {
+        console.warn('Error generating service number, using fallback:', error);
+        // Fallback to sequential number
+        serviceNumbers[storeCode]++;
+        return serviceNumbers[storeCode].toString().padStart(5, '0');
+    }
 }
 
 // API Helper Functions
@@ -700,7 +714,7 @@ async function displayStoreReport(storeCode) {
                     <div class="report-item service-report">
                         <div class="report-item-header">
                             <span class="report-item-title">${svc.machineCode} - ${svc.machineType}</span>
-                            <span class="report-item-date">Serviço: ${getServiceNumber(storeCode, svc.id)}</span>
+                            <span class="report-item-date">Serviço: ${getServiceNumber(storeCode, svc.id || svc._id || '')}</span>
                         </div>
                         <div class="report-item-details">
                             <strong>Tipo de Serviço:</strong> ${svc.serviceType}<br>
@@ -850,7 +864,7 @@ async function displayServices() {
                 serviceDiv.innerHTML = `
                     <div class="record-header">
                         <span class="record-title">${machineCode} - ${machineType}</span>
-                        <span class="record-date">Serviço: ${getServiceNumber(service.store_id || service.store || '', service.id)}</span>
+                        <span class="record-date">Serviço: ${getServiceNumber(service.store_id || service.store || '', service.id || service._id || '')}</span>
                     </div>
                     <div class="record-details">
                         <strong>Código da Máquina:</strong> ${machineCode}<br>
