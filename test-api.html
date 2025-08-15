@@ -5,176 +5,370 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teste da API - GP Máquinas</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
         .success { color: green; }
         .error { color: red; }
-        button { padding: 10px 20px; margin: 5px; }
-        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online { background-color: green; }
+        .status-offline { background-color: red; }
+        .status-checking { background-color: orange; }
     </style>
 </head>
 <body>
-    <h1>🧪 Teste da API - GP Máquinas</h1>
+    <h1>Teste da API - GP Máquinas</h1>
     
     <div class="test-section">
-        <h2>1. Teste de Login</h2>
-        <button onclick="testLogin('admin', 'admin')">Testar Admin</button>
-        <button onclick="testLogin('GPInterlagos', '123456')">Testar Loja</button>
+        <h2>🔍 Status do Sistema</h2>
+        <div id="system-status">
+            <div><span class="status-indicator status-checking"></span>Verificando conectividade...</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>1. Teste de Conectividade</h2>
+        <button onclick="testHealth()">Testar Health Check</button>
+        <button onclick="testCORS()">Testar CORS</button>
+        <button onclick="testProxy()">Testar Proxy Local</button>
+        <div id="health-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Teste de Login</h2>
+        <input type="text" id="username" placeholder="Usuário" value="admin">
+        <input type="password" id="password" placeholder="Senha" value="admin123">
+        <button onclick="testLogin()">Testar Login</button>
         <div id="login-result"></div>
     </div>
-
+    
     <div class="test-section">
-        <h2>2. Teste de Verificação de Token</h2>
-        <button onclick="testVerifyToken()">Verificar Token</button>
-        <div id="verify-result"></div>
+        <h2>3. Teste de Relatórios (após login)</h2>
+        <button onclick="testReports()" id="test-reports-btn" disabled>Testar Relatórios</button>
+        <div id="reports-result"></div>
     </div>
-
+    
     <div class="test-section">
-        <h2>3. Teste de Registro de Serviço</h2>
-        <button onclick="testSaveService()">Salvar Serviço</button>
-        <div id="service-result"></div>
-    </div>
-
-    <div class="test-section">
-        <h2>4. Teste de Busca de Serviços</h2>
-        <button onclick="testGetServices()">Buscar Serviços</button>
-        <div id="services-result"></div>
+        <h2>4. Logs de Debug</h2>
+        <button onclick="clearLogs()">Limpar Logs</button>
+        <button onclick="exportLogs()">Exportar Logs</button>
+        <div id="debug-logs"></div>
     </div>
 
     <script>
-        let currentToken = null;
-
-        async function testLogin(username, password) {
-            const resultDiv = document.getElementById('login-result');
-            resultDiv.innerHTML = 'Testando...';
+        let authToken = null;
+        let logs = [];
+        
+        // Use local proxy instead of direct API calls
+        const API_BASE = window.location.origin;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = { timestamp, message, type };
+            logs.push(logEntry);
+            
+            const logsDiv = document.getElementById('debug-logs');
+            const logElement = document.createElement('div');
+            logElement.className = type;
+            logElement.innerHTML = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logElement);
+            
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function clearLogs() {
+            document.getElementById('debug-logs').innerHTML = '';
+            logs = [];
+        }
+        
+        function exportLogs() {
+            const logText = logs.map(log => `[${log.timestamp}] ${log.message}`).join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `api-test-logs-${new Date().toISOString().slice(0, 19)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function updateSystemStatus(status, message) {
+            const statusDiv = document.getElementById('system-status');
+            const indicator = statusDiv.querySelector('.status-indicator');
+            indicator.className = `status-indicator status-${status}`;
+            statusDiv.innerHTML = `<div><span class="status-indicator status-${status}"></span>${message}</div>`;
+        }
+        
+        async function testProxy() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '<div class="info">Testando proxy local...</div>';
             
             try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
+                const response = await fetch(`${API_BASE}/api/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                log(`Proxy test response status: ${response.status}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Proxy local funcionando!</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    log('Proxy test: OK', 'success');
+                    updateSystemStatus('online', 'Proxy local funcionando');
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Proxy falhou: ${response.status}</div><pre>${errorText}</pre>`;
+                    log(`Proxy test failed: ${response.status} - ${errorText}`, 'error');
+                    updateSystemStatus('offline', `Proxy falhou (${response.status})`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro proxy: ${error.message}</div>`;
+                log(`Proxy error: ${error.message}`, 'error');
+                updateSystemStatus('offline', `Erro proxy: ${error.message}`);
+            }
+        }
+        
+        async function testCORS() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '<div class="info">Testando CORS...</div>';
+            
+            try {
+                // Test with different methods
+                const testUrl = `${API_BASE}/api/health`;
+                
+                // Test OPTIONS request (preflight)
+                const optionsResponse = await fetch(testUrl, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                log(`CORS OPTIONS status: ${optionsResponse.status}`, 'info');
+                
+                // Test actual GET request
+                const getResponse = await fetch(testUrl, {
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`CORS GET status: ${getResponse.status}`, 'info');
+                
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    resultDiv.innerHTML = `<div class="success">✅ CORS OK - API acessível</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    log('CORS test: OK', 'success');
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ CORS falhou: ${getResponse.status}</div>`;
+                    log(`CORS test failed: ${getResponse.status}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro CORS: ${error.message}</div>`;
+                log(`CORS error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '<div class="info">Testando...</div>';
+            
+            try {
+                // Test with explicit CORS headers
+                const response = await fetch(`${API_BASE}/api/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                log(`Health check response status: ${response.status}`, 'info');
+                log(`Health check response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Health check OK</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    log('Health check: OK', 'success');
+                    updateSystemStatus('online', 'API online e funcionando');
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Health check falhou: ${response.status}</div><pre>${errorText}</pre>`;
+                    log(`Health check failed: ${response.status} - ${errorText}`, 'error');
+                    updateSystemStatus('offline', `API offline (${response.status})`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                log(`Health check error: ${error.message}`, 'error');
+                updateSystemStatus('offline', `Erro de conectividade: ${error.message}`);
+                
+                // Provide helpful suggestions
+                if (error.message.includes('Failed to fetch')) {
+                    log('💡 Sugestão: Verifique se o servidor local está rodando', 'warning');
+                    log('💡 Execute: node server-local.js', 'warning');
+                }
+            }
+        }
+        
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            resultDiv.innerHTML = '<div class="info">Fazendo login...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ username, password })
                 });
                 
-                const data = await response.json();
+                log(`Login response status: ${response.status}`, 'info');
                 
-                if (data.success) {
-                    currentToken = data.token;
-                    resultDiv.innerHTML = `<div class="success">✅ Login bem-sucedido! Token: ${data.token.substring(0, 20)}...</div>`;
-                } else {
-                    resultDiv.innerHTML = `<div class="error">❌ Login falhou: ${data.error}</div>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
-            }
-        }
-
-        async function testVerifyToken() {
-            const resultDiv = document.getElementById('verify-result');
-            
-            if (!currentToken) {
-                resultDiv.innerHTML = '<div class="error">❌ Faça login primeiro</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = 'Verificando...';
-            
-            try {
-                const response = await fetch('/api/auth/verify', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${currentToken}`
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Login response data: ${JSON.stringify(data)}`, 'info');
+                    
+                    if (data.token) {
+                        authToken = data.token;
+                        resultDiv.innerHTML = `<div class="success">✅ Login realizado com sucesso</div><pre>Usuário: ${data.user}\nToken: ${data.token.substring(0, 20)}...</pre>`;
+                        log('Login: OK', 'success');
+                        
+                        // Enable reports test
+                        document.getElementById('test-reports-btn').disabled = false;
+                    } else {
+                        resultDiv.innerHTML = `<div class="error">❌ Login falhou: Token não recebido</div>`;
+                        log('Login failed: No token received', 'error');
                     }
-                });
-                
-                const data = await response.json();
-                
-                if (data.valid) {
-                    resultDiv.innerHTML = `<div class="success">✅ Token válido! Usuário: ${data.user.username}</div>`;
                 } else {
-                    resultDiv.innerHTML = '<div class="error">❌ Token inválido</div>';
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Login falhou: ${response.status}</div><pre>${errorText}</pre>`;
+                    log(`Login failed: ${response.status} - ${errorText}`, 'error');
                 }
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                log(`Login error: ${error.message}`, 'error');
             }
         }
-
-        async function testSaveService() {
-            const resultDiv = document.getElementById('service-result');
-            
-            if (!currentToken) {
-                resultDiv.innerHTML = '<div class="error">❌ Faça login primeiro</div>';
+        
+        async function testReports() {
+            if (!authToken) {
+                log('Token não disponível para teste de relatórios', 'error');
                 return;
             }
             
-            resultDiv.innerHTML = 'Salvando...';
-            
-            const service = {
-                machineCode: 'TEST-001',
-                machineType: 'Elevador 1',
-                storeId: 'GPInterlagos',
-                location: 'Setor Teste',
-                serviceType: 'belt-replacement',
-                serviceDate: '2024-08-12',
-                technicianId: '1',
-                description: 'Serviço de teste',
-                cost: 100.00,
-                status: 'completed',
-                notes: 'Teste da API'
-            };
+            const resultDiv = document.getElementById('reports-result');
+            resultDiv.innerHTML = '<div class="info">Testando relatórios...</div>';
             
             try {
-                const response = await fetch('/api/services', {
-                    method: 'POST',
+                // Test services endpoint (this exists)
+                const servicesResponse = await fetch(`${API_BASE}/api/services`, {
                     headers: {
+                        'Authorization': `Bearer ${authToken}`,
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentToken}`
-                    },
-                    body: JSON.stringify(service)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    resultDiv.innerHTML = `<div class="success">✅ Serviço salvo com sucesso!</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
-                } else {
-                    resultDiv.innerHTML = `<div class="error">❌ Falha ao salvar: ${data.error}</div>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
-            }
-        }
-
-        async function testGetServices() {
-            const resultDiv = document.getElementById('services-result');
-            
-            if (!currentToken) {
-                resultDiv.innerHTML = '<div class="error">❌ Faça login primeiro</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = 'Buscando...';
-            
-            try {
-                const response = await fetch('/api/services?store=GPInterlagos', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${currentToken}`
+                        'Accept': 'application/json'
                     }
                 });
                 
-                const data = await response.json();
+                log(`Services response status: ${servicesResponse.status}`, 'info');
                 
-                if (Array.isArray(data)) {
-                    resultDiv.innerHTML = `<div class="success">✅ ${data.length} serviços encontrados</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                if (servicesResponse.ok) {
+                    const servicesData = await servicesResponse.json();
+                    log(`Services: ${servicesData.services ? servicesData.services.length : 'N/A'} registros encontrados`, 'success');
                 } else {
-                    resultDiv.innerHTML = `<div class="error">❌ Formato inválido: ${JSON.stringify(data)}</div>`;
+                    const errorText = await servicesResponse.text();
+                    log(`Services error: ${servicesResponse.status} - ${errorText}`, 'error');
                 }
+                
+                // Test reports endpoint (this exists)
+                const reportsResponse = await fetch(`${API_BASE}/api/reports`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                log(`Reports response status: ${reportsResponse.status}`, 'info');
+                
+                if (reportsResponse.ok) {
+                    const reportsData = await reportsResponse.json();
+                    log(`Reports: ${reportsData.reports ? reportsData.reports.length : 'N/A'} relatórios encontrados`, 'success');
+                    
+                    resultDiv.innerHTML = `<div class="success">✅ Relatórios testados com sucesso</div>
+                        <div>Serviços: ${servicesResponse.ok ? 'OK' : 'ERRO'}</div>
+                        <div>Relatórios: ${reportsResponse.ok ? 'OK' : 'ERRO'}</div>`;
+                } else {
+                    const errorText = await reportsResponse.text();
+                    log(`Reports error: ${reportsResponse.status} - ${errorText}`, 'error');
+                    
+                    resultDiv.innerHTML = `<div class="error">❌ Erro nos relatórios</div>
+                        <div>Serviços: ${servicesResponse.ok ? 'OK' : 'ERRO'}</div>
+                        <div>Relatórios: ${reportsResponse.ok ? 'OK' : 'ERRO'}</div>`;
+                }
+                
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                log(`Reports error: ${error.message}`, 'error');
             }
         }
+        
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            log('Página carregada, iniciando testes...', 'info');
+            log(`URL atual: ${window.location.href}`, 'info');
+            log(`Origin: ${window.location.origin}`, 'info');
+            log(`Protocol: ${window.location.protocol}`, 'info');
+            log(`API Base: ${API_BASE}`, 'info');
+            
+            // Check if running locally
+            if (window.location.protocol === 'file:') {
+                log('⚠️ Executando localmente (file://) - Use o servidor local', 'warning');
+                log('💡 Execute: node server-local.js', 'warning');
+            }
+            
+            // Test proxy first
+            testProxy();
+        });
     </script>
 </body>
 </html>
