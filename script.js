@@ -61,6 +61,37 @@ const storeNames = {
     'GPTaboão': 'GP Taboão'
 };
 
+// Service numbering system per store
+const serviceNumbers = {};
+
+// Generate service number for a store
+function generateServiceNumber(storeCode) {
+    if (!serviceNumbers[storeCode]) {
+        serviceNumbers[storeCode] = 0;
+    }
+    serviceNumbers[storeCode]++;
+    
+    // Format: 00001, 00002, etc. (5 digits)
+    return serviceNumbers[storeCode].toString().padStart(5, '0');
+}
+
+// Get service number for display
+function getServiceNumber(storeCode, serviceId) {
+    // For existing services, generate a consistent number based on serviceId
+    if (!serviceNumbers[storeCode]) {
+        serviceNumbers[storeCode] = 0;
+    }
+    
+    // Use serviceId to generate a consistent number (simple hash)
+    const hash = serviceId.toString().split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+    
+    const serviceNum = Math.abs(hash) % 100000;
+    return serviceNum.toString().padStart(5, '0');
+}
+
 // API Helper Functions
 async function apiRequest(endpoint, options = {}) {
     // Use local proxy in development, direct API in production
@@ -613,7 +644,7 @@ async function displayStoreReport(storeCode) {
                     <div class="report-item service-report">
                         <div class="report-item-header">
                             <span class="report-item-title">${svc.machineCode} - ${svc.machineType}</span>
-                            <span class="report-item-date">Serviço: ${svc.serviceDate}</span>
+                            <span class="report-item-date">Serviço: ${getServiceNumber(storeCode, svc.id)}</span>
                         </div>
                         <div class="report-item-details">
                             <strong>Tipo de Serviço:</strong> ${svc.serviceType}<br>
@@ -763,7 +794,7 @@ async function displayServices() {
                 serviceDiv.innerHTML = `
                     <div class="record-header">
                         <span class="record-title">${machineCode} - ${machineType}</span>
-                        <span class="record-date">Data do Serviço: ${serviceDate}</span>
+                        <span class="record-date">Serviço: ${getServiceNumber(service.store_id || service.store || '', service.id)}</span>
                     </div>
                     <div class="record-details">
                         <strong>Código da Máquina:</strong> ${machineCode}<br>
@@ -1060,8 +1091,30 @@ function printReport() {
     const printWindow = window.open('', '_blank');
     const storeName = getStoreDisplayName(storeCode);
     
-    // Get the current report content
-    const reportContent = storeReport.innerHTML;
+    // Get the current report content and remove specific sections for printing
+    let reportContent = storeReport.innerHTML;
+    
+    // Remove specific sections that should not appear in print
+    const sectionsToRemove = [
+        'Média por Serviço',
+        'Serviços por Status',
+        'Relatório salvo',
+        'Serviços por Tipo',
+        'Últimos Serviços'
+    ];
+    
+    sectionsToRemove.forEach(section => {
+        // Remove the section header and its content
+        const regex = new RegExp(`<h4>${section}</h4>.*?<\/div>\s*<\/div>`, 'gs');
+        reportContent = reportContent.replace(regex, '');
+        
+        // Also try to remove just the header if the regex didn't work
+        reportContent = reportContent.replace(`<h4>${section}</h4>`, '');
+    });
+    
+    // Clean up any empty divs that might be left
+    reportContent = reportContent.replace(/<div class="supplier-boxes">\s*<\/div>/g, '');
+    reportContent = reportContent.replace(/<div class="mechanic-services">\s*<\/div>/g, '');
     
     // Create print-friendly HTML
     const printHTML = `
@@ -1070,7 +1123,7 @@ function printReport() {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Relatório - ${storeName}</title>
+            <title>GPSERVIÇOSAUTOMOTIVOS - ${storeName}</title>
             <style>
                 @media print {
                     body { margin: 0; padding: 20px; }
@@ -1179,7 +1232,7 @@ function printReport() {
         </head>
         <body>
             <div class="print-header">
-                <h1>GP Máquinas e Serviços</h1>
+                <h1>GPSERVIÇOSAUTOMOTIVOS</h1>
                 <p>Relatório de Serviços - ${storeName}</p>
             </div>
             <div class="print-date">
