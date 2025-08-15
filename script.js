@@ -340,6 +340,62 @@ async function filterDataForStore(storeName) {
     }
 }
 
+// Filter store options for non-admin users
+function filterStoreOptions(username) {
+    const storeLocationSelect = document.getElementById('storeLocation');
+    const storeReportSelect = document.getElementById('storeReportSelect');
+    
+    if (!storeLocationSelect || !storeReportSelect) return;
+    
+    // Find the store code based on username
+    let userStoreCode = null;
+    for (const [code, name] of Object.entries(storeNames)) {
+        if (name.toLowerCase().includes(username.toLowerCase()) || 
+            username.toLowerCase().includes(name.toLowerCase())) {
+            userStoreCode = code;
+            break;
+        }
+    }
+    
+    if (userStoreCode) {
+        // For non-admin users, show only their store
+        console.log(`🔒 Usuário da loja ${userStoreCode}, filtrando opções...`);
+        
+        // Filter storeLocation select
+        Array.from(storeLocationSelect.options).forEach(option => {
+            if (option.value === userStoreCode) {
+                option.selected = true;
+                option.disabled = false;
+            } else {
+                option.disabled = true;
+            }
+        });
+        
+        // Filter storeReportSelect
+        Array.from(storeReportSelect.options).forEach(option => {
+            if (option.value === userStoreCode) {
+                option.selected = true;
+                option.disabled = false;
+            } else {
+                option.disabled = true;
+            }
+        });
+        
+        // Add a note that the store is locked
+        const storeLocationGroup = storeLocationSelect.parentElement;
+        if (!document.getElementById('storeLockNote')) {
+            const lockNote = document.createElement('p');
+            lockNote.id = 'storeLockNote';
+            lockNote.className = 'store-lock-note';
+            lockNote.innerHTML = '🔒 <strong>Loja bloqueada para este usuário</strong>';
+            lockNote.style.cssText = 'color: #dc2626; font-size: 0.9rem; margin-top: 5px; font-style: italic;';
+            storeLocationGroup.appendChild(lockNote);
+        }
+    } else {
+        console.log(`⚠️ Usuário ${username} não corresponde a nenhuma loja específica`);
+    }
+}
+
 // Initialize navigation functionality
 function initializeNavigation() {
     navButtons.forEach(button => {
@@ -998,6 +1054,8 @@ function showMainApp() {
     // Filter data based on user role
     if (userRole !== 'admin') {
         filterDataForStore(currentUser);
+        // Filter store options for non-admin users
+        filterStoreOptions(currentUser);
     }
     
     // Start inactivity timer
