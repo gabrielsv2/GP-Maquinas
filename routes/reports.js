@@ -139,7 +139,9 @@ router.post('/store', [
                 serviceDate: s.service_date,
                 cost: s.cost,
                 status: s.status,
-
+                description: s.description,
+                location: s.location,
+                notes: s.notes
             }))
         };
 
