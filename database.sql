@@ -152,10 +152,11 @@ INSERT INTO service_types (service_type_id, service_name, description, estimated
 
 -- Insert sample technicians
 INSERT INTO technicians (technician_name, phone, email, specialization, hourly_rate) VALUES
-('João Silva', '(11) 99999-1111', 'joao@tecnico.com', 'Mecânica Geral', 50.00),
-('Maria Santos', '(11) 99999-2222', 'maria@tecnico.com', 'Eletrônica', 60.00),
-('Pedro Costa', '(11) 99999-3333', 'pedro@tecnico.com', 'Manutenção Preventiva', 45.00),
-('Ana Oliveira', '(11) 99999-4444', 'ana@tecnico.com', 'Calibração', 55.00);
+('Martins', '(11) 99999-1111', 'martins@tecnico.com', 'Mecânica Geral', 50.00),
+('Diego', '(11) 99999-2222', 'diego@tecnico.com', 'Mecânica Especializada', 55.00),
+('Tadeo', '(11) 99999-3333', 'tadeo@tecnico.com', 'Manutenção Preventiva', 52.00),
+('Leal-Ferramentas', '(11) 99999-4444', 'leal@ferramentas.com', 'Ferramentas e Equipamentos', 60.00),
+('Outros', '(11) 99999-5555', 'outros@tecnico.com', 'Serviços Gerais', 45.00);
 
 -- Create views for common reports
 
