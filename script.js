@@ -545,6 +545,12 @@ function getServiceTypeId(frontendValue) {
         'preventive-maintenance': 'preventive-maintenance',
         'calibration': 'calibration',
         'inspection': 'inspection',
+        'balanceadora-1': 'balanceadora-1',
+        'balanceadora-2': 'balanceadora-2',
+        'montadora-1': 'montadora-1',
+        'montadora-2': 'montadora-2',
+        'alinhamento-1': 'alinhamento-1',
+        'alinhamento-2': 'alinhamento-2',
         'other': 'other'
     };
     
@@ -560,7 +566,10 @@ function getTechnicianId(frontendValue) {
     // O banco usa NÚMEROS para technicians
     const technicianMap = {
         '1': 1,        // Martins
-        '2': 2         // Outros
+        '2': 2,        // Diego
+        '3': 3,        // Tadeo
+        '4': 4,        // Leal-Ferramentas
+        '5': 5         // Outros
     };
     
     const result = parseInt(frontendValue) || 1;
@@ -589,7 +598,10 @@ function getStatusValue(frontendValue) {
 function getTechnicianName(technicianId) {
     const technicianMap = {
         '1': 'Martins',
-        '2': 'Outros'
+        '2': 'Diego',
+        '3': 'Tadeo',
+        '4': 'Leal-Ferramentas',
+        '5': 'Outros'
     };
     return technicianMap[technicianId] || technicianId;
 }
@@ -789,6 +801,12 @@ function getServiceTypeDisplayName(serviceType) {
         'preventive-maintenance': 'Manutenção Preventiva',
         'calibration': 'Calibração',
         'inspection': 'Inspeção',
+        'balanceadora-1': 'Balanceadora 1',
+        'balanceadora-2': 'Balanceadora 2',
+        'montadora-1': 'Montadora 1',
+        'montadora-2': 'Montadora 2',
+        'alinhamento-1': 'Alinhamento 1',
+        'alinhamento-2': 'Alinhamento 2',
         'other': 'Outros'
     };
     return serviceTypeNames[serviceType] || serviceType;
