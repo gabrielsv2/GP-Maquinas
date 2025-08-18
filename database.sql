@@ -148,6 +148,12 @@ INSERT INTO service_types (service_type_id, service_name, description, estimated
 ('preventive-maintenance', 'Manutenção Preventiva', 'Manutenção preventiva programada', 250.00, 3, 'Manutenção Preventiva'),
 ('calibration', 'Calibração', 'Calibração de equipamentos', 180.00, 2, 'Manutenção Preventiva'),
 ('inspection', 'Inspeção', 'Inspeção técnica de equipamentos', 120.00, 1, 'Inspeção'),
+('balanceadora-1', 'Balanceadora 1', 'Serviços em balanceadora 1', 150.00, 2, 'Manutenção Preventiva'),
+('balanceadora-2', 'Balanceadora 2', 'Serviços em balanceadora 2', 150.00, 2, 'Manutenção Preventiva'),
+('montadora-1', 'Montadora 1', 'Serviços em montadora 1', 200.00, 3, 'Manutenção Preventiva'),
+('montadora-2', 'Montadora 2', 'Serviços em montadora 2', 200.00, 3, 'Manutenção Preventiva'),
+('alinhamento-1', 'Alinhamento 1', 'Serviços de alinhamento 1', 180.00, 2, 'Manutenção Preventiva'),
+('alinhamento-2', 'Alinhamento 2', 'Serviços de alinhamento 2', 180.00, 2, 'Manutenção Preventiva'),
 ('other', 'Outros', 'Outros tipos de serviços', 200.00, 2, 'Diversos');
 
 -- Insert sample technicians
