@@ -138,12 +138,12 @@ INSERT INTO service_types (service_type_id, service_name, description, estimated
 ('other', 'Outros', 'Outros tipos de serviço', 100.00, 2, 'Outros');
 
 -- Insert technicians (Atualizado com todos os técnicos)
-INSERT INTO technicians (technician_id, technician_name, specialization, hourly_rate, is_active) VALUES
-(1, 'Martins', 'Mecânica Geral', 50.00, true),
-(2, 'Diego', 'Mecânica Especializada', 55.00, true),
-(3, 'Tadeo', 'Manutenção Preventiva', 52.00, true),
-(4, 'Leal-Ferramentas', 'Ferramentas e Equipamentos', 60.00, true),
-(5, 'Outros', 'Serviços Gerais', 45.00, true);
+INSERT INTO technicians (technician_id, technician_name, specialization, is_active) VALUES
+(1, 'Martins', 'Mecânica Geral', true),
+(2, 'Diego', 'Mecânica Especializada', true),
+(3, 'Tadeo', 'Manutenção Preventiva', true),
+(4, 'Leal-Ferramentas', 'Ferramentas e Equipamentos', true),
+(5, 'Outros', 'Serviços Gerais', true);
 
 -- Create trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
