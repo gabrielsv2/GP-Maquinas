@@ -664,7 +664,7 @@ async function displayStoreReport(storeCode) {
                     <div class="summary-item"><strong>Média por Serviço:</strong> R$ ${Number(report.summary.averageCost).toFixed(2)}</div>
                     <div class="summary-item"><strong>Máquinas Únicas:</strong> ${report.summary.uniqueMachines}</div>
                     <div class="summary-item"><strong>Técnicos Únicos:</strong> ${report.summary.uniqueTechnicians}</div>
-                </div>
+                    </div>
                 <div class="summary-item" style="margin-top:8px;">
                     <strong>Relatório salvo:</strong> #${reportId}
                 </div>
@@ -681,10 +681,10 @@ async function displayStoreReport(storeCode) {
                         <div class="supplier-header"><h5>${getStatusDisplayName(status)}</h5></div>
                         <div class="supplier-stats">
                             <div class="stat-item"><span class="stat-label">Quantidade:</span><span class="stat-value">${count}</span></div>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
             reportHTML += '</div>';
         }
         
@@ -712,20 +712,20 @@ async function displayStoreReport(storeCode) {
                 const cost = parseFloat(svc.cost || 0);
                 reportHTML += `
                     <div class="report-item service-report">
-                        <div class="report-item-header">
+                            <div class="report-item-header">
                             <span class="report-item-title">${svc.machineCode} - ${svc.machineType}</span>
                             <span class="report-item-date">Serviço: ${getServiceNumber(storeCode, svc.id || svc._id || '')}</span>
-                        </div>
-                        <div class="report-item-details">
+                            </div>
+                            <div class="report-item-details">
                             <strong>Tipo de Serviço:</strong> ${svc.serviceType}<br>
                             <strong>Técnico:</strong> ${svc.technician}<br>
                             <strong>Descrição:</strong> ${svc.description || ''}<br>
                             <strong>Custo:</strong> R$ ${cost.toFixed(2)}<br>
                             <strong>Status:</strong> ${getStatusDisplayName(svc.status || 'completed')}
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
             reportHTML += '</div>';
         } else {
             reportHTML += '<p class="no-records">Nenhum serviço encontrado no período selecionado.</p>';
@@ -840,8 +840,8 @@ async function displayServices() {
             handleLogout();
             return;
         }
-        
-        // Fetch services from the backend
+    
+    // Fetch services from the backend
         const data = await apiRequest('/services');
         const services = Array.isArray(data) ? data : (data && data.services) ? data.services : [];
         
@@ -859,14 +859,14 @@ async function displayServices() {
                 const status = getStatusDisplayName(service.status || 'completed');
                 const recordDate = service.recordDate || service.record_date || '';
 
-                const serviceDiv = document.createElement('div');
-                serviceDiv.className = 'record-item service-record';
-                serviceDiv.innerHTML = `
-                    <div class="record-header">
+                    const serviceDiv = document.createElement('div');
+                    serviceDiv.className = 'record-item service-record';
+                    serviceDiv.innerHTML = `
+                        <div class="record-header">
                         <span class="record-title">${machineCode} - ${machineType}</span>
                         <span class="record-date">Serviço: ${getServiceNumber(service.store_id || service.store || '', service.id || service._id || '')}</span>
-                    </div>
-                    <div class="record-details">
+                        </div>
+                        <div class="record-details">
                         <strong>Código da Máquina:</strong> ${machineCode}<br>
                         <strong>Tipo de Máquina:</strong> ${machineType}<br>
                         <strong>Loja:</strong> ${storeName}<br>
@@ -878,14 +878,14 @@ async function displayServices() {
                         <strong>Status:</strong> ${status}<br>
 
                         <strong>Registrado em:</strong> ${recordDate}
-                        ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
-                    </div>
-                `;
-                servicesList.appendChild(serviceDiv);
-            });
-        } else {
-            servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
-        }
+                            ${service.notes ? `<br><strong>Observações:</strong> ${service.notes}` : ''}
+                        </div>
+                    `;
+                    servicesList.appendChild(serviceDiv);
+                });
+            } else {
+                servicesList.innerHTML = '<p class="no-records">Nenhum registro de serviço ainda.</p>';
+            }
     } catch (error) {
         console.error('Error loading services:', error);
         
@@ -1171,8 +1171,7 @@ function printReport() {
         'Média por Serviço',
         'Serviços por Status',
         'Relatório salvo',
-        'Serviços por Tipo',
-        'Últimos Serviços'
+        'Serviços por Tipo'
     ];
     
     sectionsToRemove.forEach(section => {
@@ -1186,7 +1185,10 @@ function printReport() {
     
     // Clean up any empty divs that might be left
     reportContent = reportContent.replace(/<div class="supplier-boxes">\s*<\/div>/g, '');
-    reportContent = reportContent.replace(/<div class="mechanic-services">\s*<\/div>/g, '');
+    
+    // Preserve the "Últimos Serviços" section with descriptions
+    // Only remove the header but keep the content
+    reportContent = reportContent.replace(/<h4>Últimos Serviços<\/h4>/, '<h4>Serviços Realizados</h4>');
     
     // Create print-friendly HTML
     const printHTML = `
