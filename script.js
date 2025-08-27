@@ -1390,18 +1390,27 @@ async function searchMachineServices() {
             
             response.services.forEach(service => {
                 const cost = parseFloat(service.cost || 0);
-                const serviceDate = new Date(service.createdAt || service.serviceDate).toLocaleDateString('pt-BR');
+                
+                // Corrigir a data - usar o campo correto da API
+                let serviceDate = 'Data não informada';
+                if (service.service_date) {
+                    try {
+                        serviceDate = new Date(service.service_date).toLocaleDateString('pt-BR');
+                    } catch (e) {
+                        serviceDate = service.service_date; // Usar a data como string se não conseguir converter
+                    }
+                }
                 
                 resultsHTML += `
                     <div class="machine-service-item">
                         <div class="machine-service-header">
-                            <span class="machine-service-title">${service.machineCode || service.machine_code || 'N/A'} - ${service.machineType || service.machine_type || 'N/A'}</span>
+                            <span class="machine-service-title">${service.machine_code || 'N/A'} - ${service.machine_type || 'N/A'}</span>
                             <span class="machine-service-date">${serviceDate}</span>
                         </div>
                         <div class="machine-service-details">
-                            <strong>Loja:</strong> ${getStoreDisplayName(service.storeId || service.store_id || '')}<br>
-                            <strong>Tipo de Serviço:</strong> ${getServiceTypeDisplayName(service.serviceType || service.service_type || '')}<br>
-                            <strong>Técnico:</strong> ${service.technician || 'N/A'}<br>
+                            <strong>Loja:</strong> ${getStoreDisplayName(service.store_id || '')}<br>
+                            <strong>Tipo de Serviço:</strong> ${service.service_name || 'N/A'}<br>
+                            <strong>Técnico:</strong> ${service.technician_name || 'N/A'}<br>
                             <strong>Descrição:</strong> ${service.description || 'N/A'}<br>
                             <strong>Custo:</strong> R$ ${cost.toFixed(2)}<br>
                             <strong>Status:</strong> ${getStatusDisplayName(service.status || 'completed')}<br>

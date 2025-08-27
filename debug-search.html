@@ -93,6 +93,7 @@
             <button onclick="testSearch()">🔍 Testar Pesquisa</button>
             <button onclick="clearResults()">Limpar</button>
             <button onclick="testElements()">🧪 Testar Elementos</button>
+            <button onclick="showRawData()">📊 Dados Brutos</button>
         </div>
         
         <div id="results" class="results" style="display: none;">
@@ -116,6 +117,7 @@
 
     <script>
         const API_BASE = 'http://localhost:3000/api';
+        let lastSearchData = null; // Variável para armazenar dados da última pesquisa
         
         // Função para testar se os elementos estão sendo encontrados
         function testElements() {
@@ -177,6 +179,7 @@
                 
                 if (response.ok) {
                     const data = await response.json();
+                    lastSearchData = data; // Armazenar dados da última pesquisa
                     if (data.services && data.services.length > 0) {
                         let html = `<p class="success">✅ ${data.services.length} serviço(s) encontrado(s)</p>`;
                         html += '<ul>';
@@ -217,6 +220,42 @@
             document.getElementById('serviceDate').value = '';
             document.getElementById('results').style.display = 'none';
             document.getElementById('healthStatus').innerHTML = '';
+            lastSearchData = null; // Limpar dados da última pesquisa
+        }
+
+        // Função para mostrar dados brutos da API
+        function showRawData() {
+            const debugInfo = document.getElementById('debugInfo');
+            if (!lastSearchData) {
+                debugInfo.textContent = 'Nenhuma pesquisa realizada ainda. Faça uma pesquisa primeiro.';
+                return;
+            }
+            
+            let info = '=== DADOS BRUTOS DA API ===\n\n';
+            info += `Total de serviços: ${lastSearchData.services ? lastSearchData.services.length : 0}\n\n`;
+            
+            if (lastSearchData.services && lastSearchData.services.length > 0) {
+                info += 'Primeiro serviço encontrado:\n';
+                const service = lastSearchData.services[0];
+                
+                // Listar todos os campos disponíveis
+                Object.keys(service).forEach(key => {
+                    info += `${key}: ${service[key]}\n`;
+                });
+                
+                info += '\n=== CAMPOS ESPECÍFICOS ===\n';
+                info += `machine_code: ${service.machine_code}\n`;
+                info += `machine_type: ${service.machine_type}\n`;
+                info += `service_date: ${service.service_date}\n`;
+                info += `service_name: ${service.service_name}\n`;
+                info += `technician_name: ${service.technician_name}\n`;
+                info += `store_name: ${service.store_name}\n`;
+                info += `description: ${service.description}\n`;
+                info += `cost: ${service.cost}\n`;
+                info += `status: ${service.status}\n`;
+            }
+            
+            debugInfo.textContent = info;
         }
         
         // Testar elementos ao carregar a página
