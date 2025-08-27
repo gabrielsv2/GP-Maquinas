@@ -43,10 +43,10 @@
 
 ## 🗄️ **Arquivos Criados/Modificados**
 
-### **1. `add-users-table.sql`**
-- Script SQL para criar tabela `users` (PostgreSQL)
-- Inserir todos os usuários com senhas criptografadas
-- Relacionamento com tabela `stores`
+### **1. Scripts SQL (escolha um):**
+- **`add-users-table.sql`** - Versão completa com comentários
+- **`add-users-table-clean.sql`** - Versão limpa sem acentos
+- **`add-users-table-simple.sql`** - Versão dividida em partes menores
 
 ### **2. `routes/auth.js`** (MODIFICADO)
 - Sistema de autenticação atualizado
@@ -61,11 +61,29 @@
 ## 🚀 **Passos para Implementação**
 
 ### **Passo 1: Executar no Banco de Dados PostgreSQL**
-```sql
--- Executar o arquivo add-users-table.sql no seu banco PostgreSQL
-\i add-users-table.sql
 
--- OU copiar e colar o conteúdo diretamente no psql
+**Opção A - Arquivo completo:**
+```sql
+-- No PostgreSQL (psql)
+\i add-users-table.sql
+```
+
+**Opção B - Arquivo limpo:**
+```sql
+-- No PostgreSQL (psql)
+\i add-users-table-clean.sql
+```
+
+**Opção C - Arquivo simples (recomendado):**
+```sql
+-- No PostgreSQL (psql)
+\i add-users-table-simple.sql
+```
+
+**Opção D - Copiar e colar diretamente:**
+```sql
+-- Copiar o conteúdo de add-users-table-simple.sql
+-- e colar diretamente no psql
 ```
 
 ### **Passo 2: Verificar Funcionamento**
@@ -97,6 +115,7 @@
 - **Verificar se as lojas existem** na tabela `stores`
 - **IDs das lojas** devem corresponder aos `store_id` na tabela `users`
 - **Sistema configurado para PostgreSQL** (não MySQL)
+- **Se houver erro de sintaxe**, use o arquivo `add-users-table-simple.sql`
 
 ## 🧪 **Testes Recomendados**
 
@@ -113,7 +132,19 @@
 - ✅ **Índices criados separadamente**
 - ✅ **Sintaxe de comentários** específica do PostgreSQL
 
+## 🆘 **Solução de Problemas**
+
+### **Erro de sintaxe:**
+- Use `add-users-table-simple.sql` (mais simples)
+- Execute comandos um por vez se necessário
+- Verifique se não há caracteres especiais
+
+### **Erro de codificação:**
+- Use `add-users-table-clean.sql` (sem acentos)
+- Verifique se o arquivo está em UTF-8
+
 ---
 
 **Status:** ✅ **PRONTO PARA IMPLEMENTAÇÃO NO POSTGRESQL**
+**Arquivo recomendado:** `add-users-table-simple.sql`
 **Próximo passo:** Executar o script SQL no banco PostgreSQL
