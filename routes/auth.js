@@ -39,70 +39,49 @@ router.post('/login', [
 
         const { username, password } = req.body;
 
-        // Verificar se é admin
-        if (username === 'admin' && password === 'admin') {
-            const token = jwt.sign(
-                { 
-                    id: 0, 
-                    username: 'admin', 
-                    role: 'admin',
-                    store: null
-                },
-                config.security.jwtSecret,
-                { expiresIn: '24h' }
-            );
+        // Buscar usuário no banco de dados
+        const userResult = await db.query(
+            'SELECT user_id, username, password_hash, role, store_id, full_name FROM users WHERE username = $1 AND is_active = true',
+            [username]
+        );
 
-            return res.json({
-                success: true,
-                token,
-                user: {
-                    id: 0,
-                    username: 'admin',
-                    role: 'admin',
-                    fullName: 'Administrador do Sistema',
-                    store: null
-                }
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ 
+                error: 'Usuário ou senha incorretos' 
             });
         }
 
-        // Verificar se é usuário de loja
-        if (password === '123456') {
-            // Buscar loja no banco
-            const storeResult = await db.query(
-                'SELECT store_id, store_name FROM stores WHERE store_id = $1 AND is_active = true',
-                [username]
-            );
+        const user = userResult.rows[0];
 
-            if (storeResult.rows.length > 0) {
-                const store = storeResult.rows[0];
-                const token = jwt.sign(
-                    { 
-                        id: store.store_id, 
-                        username: store.store_id, 
-                        role: 'store',
-                        store: store.store_id
-                    },
-                    config.security.jwtSecret,
-                    { expiresIn: '24h' }
-                );
-
-                return res.json({
-                    success: true,
-                    token,
-                    user: {
-                        id: store.store_id,
-                        username: store.store_id,
-                        role: 'store',
-                        fullName: store.store_name,
-                        store: store.store_id
-                    }
-                });
-            }
+        // Verificar senha
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+        if (!isPasswordValid) {
+            return res.status(401).json({ 
+                error: 'Usuário ou senha incorretos' 
+            });
         }
 
-        // Login inválido
-        return res.status(401).json({ 
-            error: 'Usuário ou senha incorretos' 
+        // Gerar token JWT
+        const tokenPayload = {
+            id: user.user_id,
+            username: user.username,
+            role: user.role,
+            store: user.store_id
+        };
+
+        const token = jwt.sign(tokenPayload, config.security.jwtSecret, { expiresIn: '24h' });
+
+        // Retornar resposta de sucesso
+        return res.json({
+            success: true,
+            token,
+            user: {
+                id: user.user_id,
+                username: user.username,
+                role: user.role,
+                fullName: user.full_name,
+                store: user.store_id
+            }
         });
 
     } catch (error) {
@@ -132,20 +111,32 @@ router.post('/logout', authenticateToken, (req, res) => {
 // Obter perfil do usuário
 router.get('/profile', authenticateToken, async (req, res) => {
     try {
-        if (req.user.role === 'admin') {
+        // Buscar informações do usuário
+        const userResult = await db.query(
+            'SELECT user_id, username, role, store_id, full_name FROM users WHERE user_id = $1 AND is_active = true',
+            [req.user.id]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        const user = userResult.rows[0];
+
+        if (user.role === 'admin') {
             return res.json({
-                id: 0,
-                username: 'admin',
-                role: 'admin',
-                fullName: 'Administrador do Sistema',
+                id: user.user_id,
+                username: user.username,
+                role: user.role,
+                fullName: user.full_name,
                 store: null
             });
         }
 
-        // Buscar informações da loja
+        // Para usuários de loja, buscar informações adicionais da loja
         const storeResult = await db.query(
             'SELECT store_id, store_name, region FROM stores WHERE store_id = $1 AND is_active = true',
-            [req.user.store]
+            [user.store_id]
         );
 
         if (storeResult.rows.length === 0) {
@@ -154,11 +145,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
         const store = storeResult.rows[0];
         res.json({
-            id: store.store_id,
-            username: store.store_id,
-            role: 'store',
-            fullName: store.store_name,
-            store: store.store_id,
+            id: user.user_id,
+            username: user.username,
+            role: user.role,
+            fullName: user.full_name,
+            store: user.store_id,
             region: store.region
         });
 
