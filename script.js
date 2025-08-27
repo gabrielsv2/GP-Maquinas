@@ -1353,4 +1353,155 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Função para pesquisar serviços por código de máquina e data
+async function searchMachineServices() {
+    const machineCode = document.getElementById('machineSearchCode').value.trim();
+    const serviceDate = document.getElementById('serviceDateSearch').value;
+    const resultsDiv = document.getElementById('machineSearchResults');
+    
+    // Validar se pelo menos um critério foi fornecido
+    if (!machineCode && !serviceDate) {
+        resultsDiv.innerHTML = '<p class="no-records">Por favor, digite um código de máquina e/ou selecione uma data para pesquisar.</p>';
+        return;
+    }
+    
+    try {
+        // Mostrar indicador de carregamento
+        resultsDiv.innerHTML = '<p class="no-records">🔍 Pesquisando serviços...</p>';
+        
+        // Construir parâmetros da pesquisa
+        const searchParams = new URLSearchParams();
+        if (machineCode) {
+            searchParams.append('machineCode', machineCode);
+        }
+        if (serviceDate) {
+            searchParams.append('serviceDate', serviceDate);
+        }
+        
+        // Fazer requisição para a API
+        const response = await apiRequest(`/services/search?${searchParams.toString()}`, {
+            method: 'GET'
+        });
+        
+        if (response.services && response.services.length > 0) {
+            // Exibir resultados
+            let resultsHTML = `<h4>🔍 Resultados da Pesquisa</h4>`;
+            resultsHTML += `<p><strong>${response.services.length}</strong> serviço(s) encontrado(s)</p>`;
+            
+            response.services.forEach(service => {
+                const cost = parseFloat(service.cost || 0);
+                const serviceDate = new Date(service.createdAt || service.serviceDate).toLocaleDateString('pt-BR');
+                
+                resultsHTML += `
+                    <div class="machine-service-item">
+                        <div class="machine-service-header">
+                            <span class="machine-service-title">${service.machineCode || service.machine_code || 'N/A'} - ${service.machineType || service.machine_type || 'N/A'}</span>
+                            <span class="machine-service-date">${serviceDate}</span>
+                        </div>
+                        <div class="machine-service-details">
+                            <strong>Loja:</strong> ${getStoreDisplayName(service.storeId || service.store_id || '')}<br>
+                            <strong>Tipo de Serviço:</strong> ${getServiceTypeDisplayName(service.serviceType || service.service_type || '')}<br>
+                            <strong>Técnico:</strong> ${service.technician || 'N/A'}<br>
+                            <strong>Descrição:</strong> ${service.description || 'N/A'}<br>
+                            <strong>Custo:</strong> R$ ${cost.toFixed(2)}<br>
+                            <strong>Status:</strong> ${getStatusDisplayName(service.status || 'completed')}<br>
+                            ${service.notes ? `<strong>Observações:</strong> ${service.notes}<br>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = resultsHTML;
+        } else {
+            resultsDiv.innerHTML = '<p class="no-records">Nenhum serviço encontrado com os critérios especificados.</p>';
+        }
+        
+    } catch (error) {
+        console.error('Erro ao pesquisar serviços:', error);
+        
+        let errorMessage = 'Erro ao realizar a pesquisa. Tente novamente.';
+        
+        if (error.message.includes('Sessão expirada')) {
+            errorMessage = 'Sessão expirada. Faça login novamente.';
+        } else if (error.message.includes('Invalid content type')) {
+            errorMessage = 'Erro de comunicação com o servidor. Verifique sua conexão.';
+        } else if (error.message.includes('HTTP error')) {
+            errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+        }
+        
+        resultsDiv.innerHTML = `<p class="no-records">${errorMessage}</p>`;
+    }
+}
+
+// Função para limpar a pesquisa
+function clearMachineSearch() {
+    document.getElementById('machineSearchCode').value = '';
+    document.getElementById('serviceDateSearch').value = '';
+    document.getElementById('machineSearchResults').innerHTML = '<p class="no-records">Digite um código de máquina e/ou selecione uma data para pesquisar serviços.</p>';
+}
+
+// Função para buscar serviços por código de máquina (fallback se a API de pesquisa não existir)
+async function searchServicesByMachineCode(machineCode) {
+    try {
+        const response = await apiRequest(`/services/machine/${machineCode}`, {
+            method: 'GET'
+        });
+        
+        if (response.services && response.services.length > 0) {
+            // Filtrar por data se especificada
+            const serviceDate = document.getElementById('serviceDateSearch').value;
+            let filteredServices = response.services;
+            
+            if (serviceDate) {
+                const targetDate = new Date(serviceDate);
+                filteredServices = response.services.filter(service => {
+                    const serviceDateObj = new Date(service.createdAt || service.serviceDate);
+                    return serviceDateObj.toDateString() === targetDate.toDateString();
+                });
+            }
+            
+            return { services: filteredServices };
+        }
+        
+        return { services: [] };
+    } catch (error) {
+        console.error('Erro ao buscar serviços por código de máquina:', error);
+        throw error;
+    }
+}
+
+// Adicionar event listeners para os botões de pesquisa
+document.addEventListener('DOMContentLoaded', function() {
+    const searchMachineBtn = document.getElementById('searchMachineBtn');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    
+    if (searchMachineBtn) {
+        searchMachineBtn.addEventListener('click', searchMachineServices);
+    }
+    
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', clearMachineSearch);
+    }
+    
+    // Permitir pesquisa ao pressionar Enter no campo de código da máquina
+    const machineSearchCodeInput = document.getElementById('machineSearchCode');
+    if (machineSearchCodeInput) {
+        machineSearchCodeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMachineServices();
+            }
+        });
+    }
+    
+    // Permitir pesquisa ao pressionar Enter no campo de data
+    const serviceDateSearchInput = document.getElementById('serviceDateSearch');
+    if (serviceDateSearchInput) {
+        serviceDateSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMachineServices();
+            }
+        });
+    }
+});
+
  

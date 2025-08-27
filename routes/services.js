@@ -85,6 +85,68 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Pesquisar serviços por código de máquina e/ou data
+router.get('/search', async (req, res) => {
+    try {
+        const { machineCode, serviceDate } = req.query;
+        
+        // Validar se pelo menos um parâmetro foi fornecido
+        if (!machineCode && !serviceDate) {
+            return res.status(400).json({ 
+                error: 'É necessário fornecer pelo menos um critério de pesquisa (código da máquina ou data)' 
+            });
+        }
+        
+        let query, params = [];
+        let whereConditions = [];
+        let paramIndex = 1;
+        
+        // Construir condições WHERE dinamicamente
+        if (machineCode) {
+            whereConditions.push(`s.machine_code ILIKE $${paramIndex}`);
+            params.push(`%${machineCode}%`);
+            paramIndex++;
+        }
+        
+        if (serviceDate) {
+            whereConditions.push(`DATE(s.service_date) = $${paramIndex}`);
+            params.push(serviceDate);
+            paramIndex++;
+        }
+        
+        // Adicionar restrição de loja para usuários não-admin
+        if (req.user.role !== 'admin') {
+            whereConditions.push(`s.store_id = $${paramIndex}`);
+            params.push(req.user.store);
+        }
+        
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        
+        query = `
+            SELECT s.*, st.service_name, t.technician_name, s2.store_name
+            FROM services s
+            JOIN service_types st ON s.service_type_id = st.service_type_id
+            JOIN technicians t ON s.technician_id = t.technician_id
+            JOIN stores s2 ON s.store_id = s2.store_id
+            ${whereClause}
+            ORDER BY s.service_date DESC
+        `;
+        
+        const result = await db.query(query, params);
+        
+        res.json({
+            success: true,
+            services: result.rows
+        });
+
+    } catch (error) {
+        console.error('Erro ao pesquisar serviços:', error);
+        res.status(500).json({ 
+            error: 'Erro interno do servidor' 
+        });
+    }
+});
+
 // Obter serviço por ID
 router.get('/:id', async (req, res) => {
     try {
@@ -161,7 +223,6 @@ router.post('/', [
             serviceDate,
             description,
             cost,
-
             status = 'completed',
             notes = '',
             estimatedDurationHours,
@@ -177,52 +238,21 @@ router.post('/', [
             });
         }
 
-        // Verificar se a loja existe
-        const storeResult = await db.query(
-            'SELECT store_id FROM stores WHERE store_id = $1 AND is_active = true',
-            [storeId]
-        );
-
-        if (storeResult.rows.length === 0) {
-            return res.status(400).json({ error: 'Loja não encontrada' });
-        }
-
-        // Verificar se o tipo de serviço existe
-        const serviceTypeResult = await db.query(
-            'SELECT service_type_id FROM service_types WHERE service_type_id = $1',
-            [serviceTypeId]
-        );
-
-        if (serviceTypeResult.rows.length === 0) {
-            return res.status(400).json({ error: 'Tipo de serviço não encontrado' });
-        }
-
-        // Verificar se o técnico existe
-        const technicianResult = await db.query(
-            'SELECT technician_id FROM technicians WHERE technician_id = $1 AND is_active = true',
-            [technicianId]
-        );
-
-        if (technicianResult.rows.length === 0) {
-            return res.status(400).json({ error: 'Técnico não encontrado' });
-        }
-
-        // Inserir serviço
+        // Inserir novo serviço
         const insertQuery = `
             INSERT INTO services (
                 machine_code, machine_type, store_id, location, service_type_id,
-                technician_id, service_date, description, cost, status,
-                notes, estimated_duration_hours, actual_duration_hours, parts_used,
-                warranty_until, record_date
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                technician_id, service_date, description, cost, status, notes,
+                estimated_duration_hours, actual_duration_hours, parts_used, warranty_until,
+                created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
             RETURNING *
         `;
 
         const insertParams = [
             machineCode, machineType, storeId, location, serviceTypeId,
-            technicianId, serviceDate, description, cost, status,
-            notes, estimatedDurationHours, actualDurationHours, partsUsed,
-            warrantyUntil, new Date().toISOString().split('T')[0]
+            technicianId, serviceDate, description, cost, status, notes,
+            estimatedDurationHours, actualDurationHours, partsUsed, warrantyUntil
         ];
 
         const result = await db.query(insertQuery, insertParams);
@@ -245,19 +275,22 @@ router.post('/', [
 router.put('/:id', [
     body('machineCode').notEmpty().withMessage('Código da máquina é obrigatório'),
     body('machineType').notEmpty().withMessage('Tipo da máquina é obrigatório'),
+    body('storeId').notEmpty().withMessage('ID da loja é obrigatório'),
     body('location').notEmpty().withMessage('Localização é obrigatória'),
+    body('serviceTypeId').notEmpty().withMessage('Tipo de serviço é obrigatório'),
+    body('technicianId').notEmpty().withMessage('Técnico é obrigatório'),
+    body('serviceDate').notEmpty().withMessage('Data do serviço é obrigatória'),
     body('description').notEmpty().withMessage('Descrição é obrigatória'),
     body('cost').isFloat({ min: 0 }).withMessage('Custo deve ser um número positivo')
 ], async (req, res) => {
     try {
+        const { id } = req.params;
+        
         // Validar dados de entrada
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-
-        const { id } = req.params;
-        const updateData = req.body;
 
         // Verificar se o serviço existe e se o usuário tem acesso
         let checkQuery, checkParams;
@@ -275,38 +308,47 @@ router.put('/:id', [
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
 
+        const {
+            machineCode,
+            machineType,
+            storeId,
+            location,
+            serviceTypeId,
+            technicianId,
+            serviceDate,
+            description,
+            cost,
+            status,
+            notes,
+            estimatedDurationHours,
+            actualDurationHours,
+            partsUsed,
+            warrantyUntil
+        } = req.body;
+
+        // Verificar se usuário tem acesso à loja
+        if (req.user.role !== 'admin' && req.user.store !== storeId) {
+            return res.status(403).json({ 
+                error: 'Acesso negado a esta loja' 
+            });
+        }
+
         // Atualizar serviço
         const updateQuery = `
             UPDATE services SET
-                machine_code = $1,
-                machine_type = $2,
-                location = $3,
-                description = $4,
-                cost = $5,
-                status = $6,
-                notes = $7,
-                estimated_duration_hours = $8,
-                actual_duration_hours = $9,
-                parts_used = $10,
-                warranty_until = $11,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE service_id = $12
+                machine_code = $1, machine_type = $2, store_id = $3, location = $4,
+                service_type_id = $5, technician_id = $6, service_date = $7, description = $8,
+                cost = $9, status = $10, notes = $11, estimated_duration_hours = $12,
+                actual_duration_hours = $13, parts_used = $14, warranty_until = $15,
+                updated_at = NOW()
+            WHERE service_id = $16
             RETURNING *
         `;
 
         const updateParams = [
-            updateData.machineCode,
-            updateData.machineType,
-            updateData.location,
-            updateData.description,
-            updateData.cost,
-            updateData.status || 'completed',
-            updateData.notes || '',
-            updateData.estimatedDurationHours,
-            updateData.actualDurationHours,
-            updateData.partsUsed,
-            updateData.warrantyUntil,
-            id
+            machineCode, machineType, storeId, location, serviceTypeId,
+            technicianId, serviceDate, description, cost, status, notes,
+            estimatedDurationHours, actualDurationHours, partsUsed, warrantyUntil, id
         ];
 
         const result = await db.query(updateQuery, updateParams);
