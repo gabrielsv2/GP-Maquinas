@@ -1,25 +1,25 @@
 -- Adicionar tabela de usuários para o sistema GP Máquinas
 -- Este arquivo deve ser executado após a criação do banco principal
 
-USE gp_maquinas_db;
-
 -- Criar tabela de usuários
 CREATE TABLE IF NOT EXISTS users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'store') NOT NULL,
+    role VARCHAR(10) CHECK (role IN ('admin', 'store')) NOT NULL,
     store_id VARCHAR(20),
     full_name VARCHAR(100) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (store_id) REFERENCES stores(store_id) ON DELETE RESTRICT,
-    INDEX idx_username (username),
-    INDEX idx_store_id (store_id),
-    INDEX idx_role (role)
+    FOREIGN KEY (store_id) REFERENCES stores(store_id) ON DELETE RESTRICT
 );
+
+-- Criar índices
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_store_id ON users(store_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- Inserir usuário administrador
 INSERT INTO users (username, password_hash, role, full_name) VALUES 
@@ -73,7 +73,7 @@ INSERT INTO users (username, password_hash, role, store_id, full_name) VALUES
 ('gplimao', '$2a$12$eegtwLVR.X/MhPCK7XxWVeNRYF1FaDQA/hN3WaT5rGFhuZnOUstF.', 'store', 'GPLimão', 'GP Limão'),
 
 -- GP M'Boi Mirim
-('gpmboi', '$2a$12$TjHJuGEOndeb5bynficJsuSahXpy2FFxoDQ5Eo06pDpa7a6v.hsFO', 'store', 'GPMboiMirim', 'GP M\'Boi Mirim'),
+('gpmboi', '$2a$12$TjHJuGEOndeb5bynficJsuSahXpy2FFxoDQ5Eo06pDpa7a6v.hsFO', 'store', 'GPMboiMirim', 'GP M''Boi Mirim'),
 
 -- GP Mogi
 ('gpmogi', '$2a$12$tE.OrCVl8aSH8650S.e3E.MRMQgA9H4xagPIrZV3.EHpUxQShRm1a', 'store', 'GPMogi', 'GP Mogi'),

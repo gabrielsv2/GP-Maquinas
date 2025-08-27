@@ -44,7 +44,7 @@
 ## 🗄️ **Arquivos Criados/Modificados**
 
 ### **1. `add-users-table.sql`**
-- Script SQL para criar tabela `users`
+- Script SQL para criar tabela `users` (PostgreSQL)
 - Inserir todos os usuários com senhas criptografadas
 - Relacionamento com tabela `stores`
 
@@ -60,10 +60,12 @@
 
 ## 🚀 **Passos para Implementação**
 
-### **Passo 1: Executar no Banco de Dados**
+### **Passo 1: Executar no Banco de Dados PostgreSQL**
 ```sql
--- Executar o arquivo add-users-table.sql no seu banco MySQL
-source add-users-table.sql;
+-- Executar o arquivo add-users-table.sql no seu banco PostgreSQL
+\i add-users-table.sql
+
+-- OU copiar e colar o conteúdo diretamente no psql
 ```
 
 ### **Passo 2: Verificar Funcionamento**
@@ -94,6 +96,7 @@ source add-users-table.sql;
 - **Testar em ambiente de desenvolvimento** primeiro
 - **Verificar se as lojas existem** na tabela `stores`
 - **IDs das lojas** devem corresponder aos `store_id` na tabela `users`
+- **Sistema configurado para PostgreSQL** (não MySQL)
 
 ## 🧪 **Testes Recomendados**
 
@@ -103,7 +106,14 @@ source add-users-table.sql;
 4. **Acesso às funcionalidades específicas da loja**
 5. **Logout e renovação de token**
 
+## 🐘 **Diferenças PostgreSQL vs MySQL**
+
+- ✅ **SERIAL** em vez de AUTO_INCREMENT
+- ✅ **CHECK constraint** em vez de ENUM
+- ✅ **Índices criados separadamente**
+- ✅ **Sintaxe de comentários** específica do PostgreSQL
+
 ---
 
-**Status:** ✅ **PRONTO PARA IMPLEMENTAÇÃO**
-**Próximo passo:** Executar o script SQL no banco de dados
+**Status:** ✅ **PRONTO PARA IMPLEMENTAÇÃO NO POSTGRESQL**
+**Próximo passo:** Executar o script SQL no banco PostgreSQL
