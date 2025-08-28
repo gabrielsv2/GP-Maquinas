@@ -79,6 +79,16 @@ router.get('/', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao listar serviços:', error);
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
@@ -141,6 +151,16 @@ router.get('/search', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao pesquisar serviços:', error);
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
@@ -188,6 +208,16 @@ router.get('/:id', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao buscar serviço:', error);
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
@@ -196,15 +226,21 @@ router.get('/:id', async (req, res) => {
 
 // Criar novo serviço
 router.post('/', [
-    body('machineCode').notEmpty().withMessage('Código da máquina é obrigatório'),
-    body('machineType').notEmpty().withMessage('Tipo da máquina é obrigatório'),
-    body('storeId').notEmpty().withMessage('ID da loja é obrigatório'),
-    body('location').notEmpty().withMessage('Localização é obrigatória'),
-    body('serviceTypeId').notEmpty().withMessage('Tipo de serviço é obrigatório'),
-    body('technicianId').notEmpty().withMessage('Técnico é obrigatório'),
-    body('serviceDate').notEmpty().withMessage('Data do serviço é obrigatória'),
-    body('description').notEmpty().withMessage('Descrição é obrigatória'),
-    body('cost').isFloat({ min: 0 }).withMessage('Custo deve ser um número positivo')
+    body('machineCode').notEmpty().trim().withMessage('Código da máquina é obrigatório'),
+    body('machineType').notEmpty().trim().withMessage('Tipo da máquina é obrigatório'),
+    body('storeId').notEmpty().trim().withMessage('ID da loja é obrigatório'),
+    body('location').notEmpty().trim().withMessage('Localização é obrigatória'),
+    body('serviceTypeId').notEmpty().trim().withMessage('Tipo de serviço é obrigatório'),
+    body('technicianId').isInt({ min: 1 }).withMessage('Técnico deve ser um ID válido'),
+    body('serviceDate').isISO8601().toDate().withMessage('Data do serviço deve ser uma data válida'),
+    body('description').notEmpty().trim().withMessage('Descrição é obrigatória'),
+    body('cost').isFloat({ min: 0 }).withMessage('Custo deve ser um número positivo'),
+    body('status').optional().isIn(['completed', 'pending', 'cancelled', 'in_progress']).withMessage('Status deve ser válido'),
+    body('notes').optional().trim(),
+    body('estimatedDurationHours').optional().isInt({ min: 0 }).withMessage('Duração estimada deve ser um número inteiro positivo'),
+    body('actualDurationHours').optional().isInt({ min: 0 }).withMessage('Duração real deve ser um número inteiro positivo'),
+    body('partsUsed').optional().trim(),
+    body('warrantyUntil').optional().isISO8601().toDate().withMessage('Data de garantia deve ser uma data válida')
 ], async (req, res) => {
     try {
         // Validar dados de entrada
@@ -242,16 +278,16 @@ router.post('/', [
         const insertQuery = `
             INSERT INTO services (
                 machine_code, machine_type, store_id, location, service_type_id,
-                technician_id, service_date, description, cost, status, notes,
+                technician_id, service_date, record_date, description, cost, status, notes,
                 estimated_duration_hours, actual_duration_hours, parts_used, warranty_until,
                 created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
             RETURNING *
         `;
 
         const insertParams = [
             machineCode, machineType, storeId, location, serviceTypeId,
-            technicianId, serviceDate, description, cost, status, notes,
+            technicianId, serviceDate, serviceDate, description, cost, status, notes,
             estimatedDurationHours, actualDurationHours, partsUsed, warrantyUntil
         ];
 
@@ -265,6 +301,34 @@ router.post('/', [
 
     } catch (error) {
         console.error('Erro ao criar serviço:', error);
+        
+        // Verificar se é um erro de validação do banco
+        if (error.code === '23505') { // Unique violation
+            return res.status(400).json({ 
+                error: 'Violação de unicidade',
+                details: 'Já existe um serviço com essas características'
+            });
+        } else if (error.code === '23503') { // Foreign key violation
+            return res.status(400).json({ 
+                error: 'Referência inválida',
+                details: 'Verifique se a loja, tipo de serviço ou técnico existem'
+            });
+        } else if (error.code === '23514') { // Check violation
+            return res.status(400).json({ 
+                error: 'Valor inválido',
+                details: 'Um dos campos não atende às restrições do banco'
+            });
+        }
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
@@ -273,15 +337,21 @@ router.post('/', [
 
 // Atualizar serviço
 router.put('/:id', [
-    body('machineCode').notEmpty().withMessage('Código da máquina é obrigatório'),
-    body('machineType').notEmpty().withMessage('Tipo da máquina é obrigatório'),
-    body('storeId').notEmpty().withMessage('ID da loja é obrigatório'),
-    body('location').notEmpty().withMessage('Localização é obrigatória'),
-    body('serviceTypeId').notEmpty().withMessage('Tipo de serviço é obrigatório'),
-    body('technicianId').notEmpty().withMessage('Técnico é obrigatório'),
-    body('serviceDate').notEmpty().withMessage('Data do serviço é obrigatória'),
-    body('description').notEmpty().withMessage('Descrição é obrigatória'),
-    body('cost').isFloat({ min: 0 }).withMessage('Custo deve ser um número positivo')
+    body('machineCode').notEmpty().trim().withMessage('Código da máquina é obrigatório'),
+    body('machineType').notEmpty().trim().withMessage('Tipo da máquina é obrigatório'),
+    body('storeId').notEmpty().trim().withMessage('ID da loja é obrigatório'),
+    body('location').notEmpty().trim().withMessage('Localização é obrigatória'),
+    body('serviceTypeId').notEmpty().trim().withMessage('Tipo de serviço é obrigatório'),
+    body('technicianId').isInt({ min: 1 }).withMessage('Técnico deve ser um ID válido'),
+    body('serviceDate').isISO8601().toDate().withMessage('Data do serviço deve ser uma data válida'),
+    body('description').notEmpty().trim().withMessage('Descrição é obrigatória'),
+    body('cost').isFloat({ min: 0 }).withMessage('Custo deve ser um número positivo'),
+    body('status').optional().isIn(['completed', 'pending', 'cancelled', 'in_progress']).withMessage('Status deve ser válido'),
+    body('notes').optional().trim(),
+    body('estimatedDurationHours').optional().isInt({ min: 0 }).withMessage('Duração estimada deve ser um número inteiro positivo'),
+    body('actualDurationHours').optional().isInt({ min: 0 }).withMessage('Duração real deve ser um número inteiro positivo'),
+    body('partsUsed').optional().trim(),
+    body('warrantyUntil').optional().isISO8601().toDate().withMessage('Data de garantia deve ser uma data válida')
 ], async (req, res) => {
     try {
         const { id } = req.params;
@@ -361,6 +431,34 @@ router.put('/:id', [
 
     } catch (error) {
         console.error('Erro ao atualizar serviço:', error);
+        
+        // Verificar se é um erro de validação do banco
+        if (error.code === '23505') { // Unique violation
+            return res.status(400).json({ 
+                error: 'Violação de unicidade',
+                details: 'Já existe um serviço com essas características'
+            });
+        } else if (error.code === '23503') { // Foreign key violation
+            return res.status(400).json({ 
+                error: 'Referência inválida',
+                details: 'Verifique se a loja, tipo de serviço ou técnico existem'
+            });
+        } else if (error.code === '23514') { // Check violation
+            return res.status(400).json({ 
+                error: 'Valor inválido',
+                details: 'Um dos campos não atende às restrições do banco'
+            });
+        }
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
@@ -398,6 +496,24 @@ router.delete('/:id', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao deletar serviço:', error);
+        
+        // Verificar se é um erro de validação do banco
+        if (error.code === '23503') { // Foreign key violation
+            return res.status(400).json({ 
+                error: 'Não é possível deletar',
+                details: 'Este serviço está sendo referenciado por outros registros'
+            });
+        }
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
@@ -443,6 +559,16 @@ router.get('/machine/:machineCode', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao buscar serviços da máquina:', error);
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });

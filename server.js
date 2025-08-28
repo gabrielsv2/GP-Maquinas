@@ -89,10 +89,42 @@ app.get('*', (req, res) => {
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('❌ Erro no servidor:', {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Se for um erro de validação do express-validator
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ 
+            error: 'Dados inválidos',
+            details: 'O corpo da requisição não é um JSON válido'
+        });
+    }
+    
+    // Se for um erro de limite de tamanho
+    if (err.type === 'entity.too.large') {
+        return res.status(413).json({ 
+            error: 'Dados muito grandes',
+            details: 'O corpo da requisição excede o limite permitido'
+        });
+    }
+    
+    // Para desenvolvimento, retornar mais detalhes
+    if (config.app.environment === 'development') {
+        return res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+    
     res.status(500).json({ 
         error: 'Erro interno do servidor',
-        message: config.app.environment === 'development' ? err.message : 'Algo deu errado'
+        message: 'Algo deu errado'
     });
 });
 
@@ -108,23 +140,40 @@ async function startServer() {
     try {
         console.log('🚀 Iniciando servidor...');
         console.log(`🌍 Ambiente: ${config.app.environment}`);
-        console.log(`🔧 Porta: ${PORT}`);
+        console.log(`�� Porta: ${PORT}`);
+        console.log(`📊 Configurações do banco: ${config.database.host}:${config.database.port}`);
         
         // Iniciar servidor primeiro
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`✅ Servidor rodando na porta ${PORT}`);
             console.log(`🔗 URL: http://localhost:${PORT}`);
             console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
         });
+        
+        // Configurar timeout para o servidor
+        server.timeout = 30000; // 30 segundos
         
         // Tentar conectar com banco em background
         setTimeout(async () => {
             try {
                 await db.testConnection();
                 console.log('✅ Conexão com banco de dados estabelecida');
+                
+                // Verificar saúde do pool
+                await db.checkPoolHealth();
             } catch (error) {
                 console.error('⚠️ Aviso: Não foi possível conectar com o banco de dados:', error.message);
                 console.log('🔄 O servidor continuará funcionando e tentará reconectar...');
+                
+                // Tentar reconectar periodicamente
+                setInterval(async () => {
+                    try {
+                        await db.testConnection();
+                        console.log('✅ Reconexão com banco de dados bem-sucedida');
+                    } catch (retryError) {
+                        console.log('🔄 Tentativa de reconexão falhou, tentando novamente...');
+                    }
+                }, 30000); // Tentar a cada 30 segundos
             }
         }, 2000);
         
@@ -137,12 +186,37 @@ async function startServer() {
 startServer();
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM recebido, fechando servidor...');
-    process.exit(0);
+process.on('SIGTERM', async () => {
+    console.log('🔄 SIGTERM recebido, fechando servidor...');
+    try {
+        await db.closePool();
+        console.log('✅ Servidor fechado com sucesso');
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Erro ao fechar servidor:', error.message);
+        process.exit(1);
+    }
 });
 
-process.on('SIGINT', () => {
-    console.log('SIGINT recebido, fechando servidor...');
-    process.exit(0);
+process.on('SIGINT', async () => {
+    console.log('🔄 SIGINT recebido, fechando servidor...');
+    try {
+        await db.closePool();
+        console.log('✅ Servidor fechado com sucesso');
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Erro ao fechar servidor:', error.message);
+        process.exit(1);
+    }
+});
+
+// Tratamento de erros não capturados
+process.on('uncaughtException', (error) => {
+    console.error('❌ Erro não capturado:', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Promise rejeitada não tratada:', reason);
+    process.exit(1);
 });

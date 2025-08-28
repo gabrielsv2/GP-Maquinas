@@ -86,6 +86,34 @@ router.post('/login', [
 
     } catch (error) {
         console.error('Erro no login:', error);
+        
+        // Verificar se é um erro de conexão com banco
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            return res.status(503).json({ 
+                error: 'Serviço indisponível',
+                details: 'Banco de dados não está acessível'
+            });
+        } else if (error.code === '28P01') {
+            return res.status(500).json({ 
+                error: 'Erro de autenticação',
+                details: 'Credenciais do banco de dados inválidas'
+            });
+        } else if (error.code === '3D000') {
+            return res.status(500).json({ 
+                error: 'Banco não encontrado',
+                details: 'O banco de dados especificado não existe'
+            });
+        }
+        
+        // Para desenvolvimento, retornar mais detalhes do erro
+        if (config.app.environment === 'development') {
+            return res.status(500).json({ 
+                error: 'Erro interno do servidor',
+                details: error.message,
+                code: error.code
+            });
+        }
+        
         res.status(500).json({ 
             error: 'Erro interno do servidor' 
         });
