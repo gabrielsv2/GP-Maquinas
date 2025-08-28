@@ -9,6 +9,7 @@
     "build": "echo 'Build completed'",
     "test": "node test-api.js",
     "setup-db": "node setup-database.js",
+    "test-neon": "node test-neon-connection.js",
     "netlify": "node functions/api.js"
   },
   "keywords": [
