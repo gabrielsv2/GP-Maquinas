@@ -19,13 +19,13 @@ if (!isProduction) {
     } catch (error) {
         console.log('⚠️ Arquivo config-dev.js não encontrado, usando configurações padrão');
         config = {
-            // Configurações do banco Neon
-            database: {
-                host: process.env.NEON_HOST || 'localhost',
+    // Configurações do banco Neon
+    database: {
+        host: process.env.NEON_HOST || 'localhost',
                 port: parseInt(process.env.NEON_PORT) || 5432,
-                database: process.env.NEON_DATABASE || 'gp_maquinas_db',
-                username: process.env.NEON_USERNAME || 'postgres',
-                password: process.env.NEON_PASSWORD || '',
+        database: process.env.NEON_DATABASE || 'gp_maquinas_db',
+        username: process.env.NEON_USERNAME || 'postgres',
+        password: process.env.NEON_PASSWORD || '',
                 ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
                 // Configurações adicionais para melhor estabilidade
                 max: 20,
@@ -34,18 +34,18 @@ if (!isProduction) {
                 // Configurações de retry
                 retryDelay: 1000,
                 maxRetries: 3
-            },
-            
-            // Configurações da aplicação
-            app: {
+    },
+    
+    // Configurações da aplicação
+    app: {
                 port: parseInt(process.env.PORT) || 3000,
-                environment: process.env.NODE_ENV || 'development',
-                sessionTimeout: 60 * 60 * 1000, // 1 hora em milissegundos
-                corsOrigin: process.env.CORS_ORIGIN || '*'
-            },
-            
-            // Configurações de segurança
-            security: {
+        environment: process.env.NODE_ENV || 'development',
+        sessionTimeout: 60 * 60 * 1000, // 1 hora em milissegundos
+        corsOrigin: process.env.CORS_ORIGIN || '*'
+    },
+    
+    // Configurações de segurança
+    security: {
                 jwtSecret: process.env.JWT_SECRET || 'dev-secret-key-change-in-production',
                 bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS) || 12,
                 maxLoginAttempts: parseInt(process.env.MAX_LOGIN_ATTEMPTS) || 5,
@@ -81,7 +81,9 @@ if (!isProduction) {
             port: parseInt(process.env.PORT) || 10000,
             environment: 'production',
             sessionTimeout: parseInt(process.env.SESSION_TIMEOUT) || 60 * 60 * 1000, // 1 hora
-            corsOrigin: process.env.CORS_ORIGIN || 'https://gp-services.netlify.app'
+            corsOrigin: process.env.CORS_ORIGIN ? 
+                process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()) : 
+                ['https://gp-services.netlify.app', 'http://localhost:3000', 'http://localhost:5000', 'http://127.0.0.1:3000', 'http://127.0.0.1:5000']
         },
         
         // Configurações de segurança
