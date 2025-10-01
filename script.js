@@ -726,7 +726,7 @@ async function displayStoreReport(storeCode) {
                     <div class="report-item service-report">
                             <div class="report-item-header">
                             <span class="report-item-title">${svc.machineCode} - ${svc.machineType}</span>
-                            <span class="report-item-date">Serviço: ${getServiceNumber(storeCode, svc.id || svc._id || '')}</span>
+                            <span class="report-item-date">Serviço: ${getServiceNumber(storeCode, svc.id || svc._id || '')} • Data: ${(() => { try { return svc.serviceDate ? new Date(svc.serviceDate).toLocaleDateString('pt-BR') : ''; } catch(e) { return svc.serviceDate || ''; } })()}</span>
                             </div>
                             <div class="report-item-details">
                             <strong>Tipo de Serviço:</strong> ${svc.serviceType}<br>
